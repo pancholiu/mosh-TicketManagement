@@ -2,10 +2,11 @@
   "name": "server",
   "version": "1.0.0",
   "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts"
+    "dev": "bun --watch --env-file ../.env src/index.ts",
+    "start": "bun --env-file ../.env src/index.ts"
   },
   "dependencies": {
+    "better-auth": "^1.6.19",
     "cors": "^2.8.5",
     "express": "^4.21.2"
   },
