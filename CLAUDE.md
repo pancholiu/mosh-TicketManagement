@@ -34,27 +34,30 @@ mosh-TicketManagement/
 ## Tech Stack
 
 - **Runtime:** Bun (server) + Vite dev server (client)
-- **Frontend:** React 19, TypeScript, Tailwind CSS v4, React Router v7
+- **Frontend:** React 19, TypeScript, Tailwind CSS v4, React Router v7, shadcn/ui (default style)
 - **Backend:** Express 4, TypeScript
 - **Database:** PostgreSQL via Prisma ORM
-- **Auth:** express-session with PostgreSQL session store
+- **Auth:** Better Auth v1.6
 - **AI:** Anthropic Claude API
 - **Email:** SendGrid or Mailgun (inbound webhook + outbound send)
 - **Deployment:** Docker + cloud provider (Railway / Fly.io)
 
 ## Running the App
 
-```bash
-# Install dependencies (from root)
-bun install
+> **OneDrive note:** This project lives inside OneDrive. Bun v1.3.14 cannot create hardlinks from its global cache into OneDrive directories, which silently breaks package resolution. Always use `--cache-dir "C:\bun-cache"` (outside OneDrive).
 
-# Start both servers concurrently (from root)
+```powershell
+# Install dependencies (from root) — cache-dir flag is required
+bun install --cache-dir "C:\bun-cache"
+
+# Generate Prisma client (after first install or schema changes)
+bunx prisma generate
+
+# Start both servers (from root)
 bun run dev
-
-# Or individually:
-cd server && bun --watch src/index.ts   # http://localhost:3000
-cd client && bun run dev                # http://localhost:5173
 ```
+
+`bun run dev` expands to `bun run --filter '*' dev`, which runs the `dev` script in each workspace concurrently. Do NOT run workspaces individually with `cd server && bun --watch ...` — workspace-level `node_modules` resolution is broken on this OneDrive setup; run from root only.
 
 Vite proxies `/api/*` → `http://localhost:3000` (strips `/api` prefix), so frontend fetches use `/api/...`.
 
@@ -62,5 +65,8 @@ Vite proxies `/api/*` → `http://localhost:3000` (strips `/api` prefix), so fro
 
 - Server entry: `server/src/index.ts` → imports `app.ts`, binds to `PORT`
 - Client entry: `client/src/main.tsx` → wraps `<App>` in `<BrowserRouter>`
-- Tailwind v4: no config file — import with `@import "tailwindcss"` in CSS
+- Tailwind v4: no config file — import with `@import "tailwindcss"` in CSS; theme tokens in `client/src/index.css` via `@theme inline`
+- Path alias: `@` maps to `client/src/` (configured in both `tsconfig.app.json` and `vite.config.ts`)
+- shadcn/ui: `default` style, zinc-based palette, `cssVariables: true`; add components with `npx shadcn@latest add <component>` from `client/`
 - Environment variables: copy `.env.example` → `.env` in project root
+- **Workspace package resolution quirk:** server deps (`express`, `cors`, `better-auth`) are listed in root `package.json` (not just `server/package.json`) so Bun's resolver can find them from the root context
