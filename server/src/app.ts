@@ -14,15 +14,16 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 }))
 
-// Rate-limit sign-in attempts to mitigate brute-force and credential stuffing.
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
-  message: { error: 'Too many login attempts, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-})
-app.use('/api/auth/sign-in', authLimiter)
+if (process.env.NODE_ENV === 'production') {
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,
+    message: { error: 'Too many login attempts, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+  app.use('/api/auth/sign-in', authLimiter)
+}
 
 app.all('/api/auth/*', toNodeHandler(auth))
 app.use(express.json())
