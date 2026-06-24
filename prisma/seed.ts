@@ -10,6 +10,11 @@ if (!email || !password) {
   process.exit(1)
 }
 
+if (password.length < 16) {
+  console.error("ADMIN_PASSWORD must be at least 16 characters. Generate one with: openssl rand -base64 16")
+  process.exit(1)
+}
+
 const ctx = await auth.$context
 
 const existing = await ctx.internalAdapter.findUserByEmail(email)

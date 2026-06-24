@@ -1,0 +1,1 @@
+- [Auth/AuthZ Architecture](project-auth-architecture.md) — Controls in place, persistent gaps, and hotspots to check on every new route or feature
