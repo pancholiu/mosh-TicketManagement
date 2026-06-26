@@ -61,6 +61,15 @@ bun run dev
 
 Vite proxies `/api/*` → `http://localhost:3000` (strips `/api` prefix), so frontend fetches use `/api/...`.
 
+## Testing
+
+Use the **playwright-e2e-writer** agent to write E2E tests. Invoke it after any significant feature or page is built. It knows the project's test setup, seeded credentials, and Playwright conventions — do not write E2E tests manually without it.
+
+```powershell
+bun run test:e2e       # headless
+bun run test:e2e:ui    # interactive UI
+```
+
 ## Key Conventions
 
 - Server entry: `server/src/index.ts` → imports `app.ts`, binds to `PORT`
