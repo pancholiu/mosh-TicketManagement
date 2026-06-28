@@ -3,6 +3,8 @@ import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 import { toNodeHandler } from 'better-auth/node'
 import { auth } from './lib/auth'
+import { requireAuth, requireRole } from './middleware/auth'
+import usersRouter from './routes/users'
 
 const app = express()
 
@@ -27,6 +29,8 @@ if (process.env.NODE_ENV === 'production') {
 
 app.all('/api/auth/*', toNodeHandler(auth))
 app.use(express.json())
+
+app.use('/users', requireAuth, requireRole('ADMIN'), usersRouter)
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' })
