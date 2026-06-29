@@ -63,6 +63,30 @@ Vite proxies `/api/*` → `http://localhost:3000` (strips `/api` prefix), so fro
 
 ## Testing
 
+### Component tests (Vitest + React Testing Library)
+
+Run from the `client/` directory (or via the workspace script):
+
+```powershell
+cd client
+bunx vitest run        # single run
+bunx vitest            # watch mode
+```
+
+**Setup:**
+- Vitest configured in `client/vite.config.ts` (`environment: 'jsdom'`, `globals: true`)
+- Setup file: `client/src/test/setup.ts` — imports `@testing-library/jest-dom`
+- Shared render helper: `client/src/test/render.tsx` — exports `renderWithQuery(ui)` which wraps the component in a fresh `QueryClientProvider`
+
+**Conventions:**
+- Test files live next to the component they test: `SomePage.test.tsx` beside `SomePage.tsx`
+- Mock Axios with `vi.mock('axios')` and `vi.mocked(axios, true)` — never mock `fetch`
+- Use `renderWithQuery(<Component />)` for any component that calls `useQuery` or `useMutation`
+- Always call `vi.resetAllMocks()` in `beforeEach`
+- Test IDs are not used — query by role, text, and label (`getByRole`, `findByText`, etc.)
+
+### E2E tests (Playwright)
+
 Use the **playwright-e2e-writer** agent to write E2E tests. Invoke it after any significant feature or page is built. It knows the project's test setup, seeded credentials, and Playwright conventions — do not write E2E tests manually without it.
 
 ```powershell
