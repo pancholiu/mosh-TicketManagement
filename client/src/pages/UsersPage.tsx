@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import axios from 'axios'
+import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -17,23 +18,15 @@ type User = {
   createdAt: string
 }
 
+async function fetchUsers(): Promise<User[]> {
+  const res = await axios.get<User[]>('/api/users')
+  return res.data
+}
+
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: users, isPending, error } = useQuery({ queryKey: ['users'], queryFn: fetchUsers })
 
-  useEffect(() => {
-    fetch('/api/users')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load users')
-        return res.json()
-      })
-      .then(setUsers)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) {
+  if (isPending) {
     return (
       <div className="flex items-center justify-center py-20">
         <p className="text-muted-foreground">Loading…</p>
@@ -44,7 +37,9 @@ export default function UsersPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-destructive">{error}</p>
+        <p className="text-destructive">
+          {axios.isAxiosError(error) ? (error.response?.data?.error ?? error.message) : 'Failed to load users'}
+        </p>
       </div>
     )
   }

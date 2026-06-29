@@ -34,7 +34,7 @@ mosh-TicketManagement/
 ## Tech Stack
 
 - **Runtime:** Bun (server) + Vite dev server (client)
-- **Frontend:** React 19, TypeScript, Tailwind CSS v4, React Router v7, shadcn/ui (default style)
+- **Frontend:** React 19, TypeScript, Tailwind CSS v4, React Router v7, shadcn/ui (default style), Axios (HTTP), TanStack Query v5 (server state)
 - **Backend:** Express 4, TypeScript
 - **Database:** PostgreSQL via Prisma ORM
 - **Auth:** Better Auth v1.6
@@ -77,5 +77,7 @@ bun run test:e2e:ui    # interactive UI
 - Tailwind v4: no config file — import with `@import "tailwindcss"` in CSS; theme tokens in `client/src/index.css` via `@theme inline`
 - Path alias: `@` maps to `client/src/` (configured in both `tsconfig.app.json` and `vite.config.ts`)
 - shadcn/ui: `default` style, zinc-based palette, `cssVariables: true`; add components with `npx shadcn@latest add <component>` from `client/`
+- **HTTP requests:** always use **Axios** (never `fetch`); import from `axios`
+- **Server state:** always use **TanStack Query** (`useQuery`, `useMutation`) for data fetching — `QueryClientProvider` is already set up in `main.tsx`
 - Environment variables: copy `.env.example` → `.env` in project root
 - **Workspace package resolution quirk:** server deps (`express`, `cors`, `better-auth`) are listed in root `package.json` (not just `server/package.json`) so Bun's resolver can find them from the root context
