@@ -16,6 +16,7 @@ model User {
   banned        Boolean?
   banReason     String?
   banExpires    DateTime?
+  deletedAt     DateTime?
   createdAt     DateTime
   updatedAt     DateTime
 

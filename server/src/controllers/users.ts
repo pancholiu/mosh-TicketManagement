@@ -19,10 +19,20 @@ const updateUserSchema = z.object({
 
 export const listUsers: RequestHandler = async (_req, res) => {
   const users = await prisma.user.findMany({
+    where: { deletedAt: null },
     select: { id: true, name: true, email: true, role: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
   })
   res.json(users)
+}
+
+export const deleteUser: RequestHandler = async (req, res) => {
+  const id = req.params.id as string
+  const user = await prisma.user.findUnique({ where: { id }, select: { role: true } })
+  if (!user) { res.status(404).json({ error: 'User not found' }); return }
+  if (user.role === Role.ADMIN) { res.status(403).json({ error: 'Admin users cannot be deleted' }); return }
+  await prisma.user.update({ where: { id }, data: { deletedAt: new Date() } })
+  res.status(204).end()
 }
 
 export const createUser: RequestHandler = async (req, res) => {

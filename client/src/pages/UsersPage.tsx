@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import CreateUserDialog from '@/components/CreateUserDialog'
 import EditUserDialog from '@/components/EditUserDialog'
+import DeleteUserButton from '@/components/DeleteUserButton'
 
 type User = {
   id: string
@@ -107,7 +108,12 @@ export default function UsersPage() {
                   {new Date(user.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  <EditUserDialog user={user} />
+                  <div className="flex items-center justify-end gap-1">
+                    <EditUserDialog user={user} />
+                    {user.role !== 'ADMIN' && (
+                      <DeleteUserButton userId={user.id} userName={user.name} />
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
