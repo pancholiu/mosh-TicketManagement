@@ -1,14 +1,9 @@
 import { Router } from 'express'
-import prisma from '../lib/db'
+import { listUsers, createUser } from '../controllers/users'
 
 const router = Router()
 
-router.get('/', async (_req, res) => {
-  const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
-    orderBy: { createdAt: 'desc' },
-  })
-  res.json(users)
-})
+router.get('/', listUsers)
+router.post('/', createUser)
 
 export default router

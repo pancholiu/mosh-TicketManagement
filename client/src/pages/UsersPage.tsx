@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import CreateUserDialog from '@/components/CreateUserDialog'
 
 type User = {
   id: string
@@ -72,9 +73,12 @@ export default function UsersPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-3xl font-bold">Users</h1>
-        <span className="text-muted-foreground text-sm">{users.length} total</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-3xl font-bold">Users</h1>
+          <span className="text-muted-foreground text-sm">{users.length} total</span>
+        </div>
+        <CreateUserDialog />
       </div>
 
       <div className="border rounded-lg">

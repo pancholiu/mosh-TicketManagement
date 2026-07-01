@@ -103,5 +103,11 @@ bun run test:e2e:ui    # interactive UI
 - shadcn/ui: `default` style, zinc-based palette, `cssVariables: true`; add components with `npx shadcn@latest add <component>` from `client/`
 - **HTTP requests:** always use **Axios** (never `fetch`); import from `axios`
 - **Server state:** always use **TanStack Query** (`useQuery`, `useMutation`) for data fetching — `QueryClientProvider` is already set up in `main.tsx`
+- **Express 5 async error handling:** do NOT wrap route handlers in try/catch — Express 5 automatically forwards rejected promises to the error middleware. Only catch errors when you need to handle them locally (e.g. map to a specific response).
+- **Validation:** use **Zod** on both client and server.
+  - **Client forms:** always use React Hook Form + `zodResolver`. Define a `z.object` schema, infer `FormValues` from it, pass `resolver: zodResolver(schema)` to `useForm`, and render fields with shadcn `Form`/`FormField`/`FormMessage`. Surface server errors via `form.setError('root', ...)`. See `LoginPage.tsx` and `CreateUserDialog.tsx` for the canonical pattern.
+  - **Server routes:** call `schema.safeParse(req.body)` at the top of the handler and return `400` with the first issue message on failure (see `controllers/users.ts`).
+  - Zod is in root `package.json` so both workspaces can import it.
+- **Prisma enums:** always import and use the generated enum (e.g. `import { Role } from '@prisma/client'`) — never hardcode the string value.
 - Environment variables: copy `.env.example` → `.env` in project root
 - **Workspace package resolution quirk:** server deps (`express`, `cors`, `better-auth`) are listed in root `package.json` (not just `server/package.json`) so Bun's resolver can find them from the root context
