@@ -5,6 +5,7 @@ import { toNodeHandler } from 'better-auth/node'
 import { auth } from './lib/auth'
 import { requireAuth, requireRole } from './middleware/auth'
 import usersRouter from './routes/users'
+import webhooksRouter from './routes/webhooks'
 
 const app = express()
 
@@ -30,6 +31,7 @@ if (process.env.NODE_ENV === 'production') {
 app.all('/api/auth/*', toNodeHandler(auth))
 app.use(express.json())
 
+app.use('/webhooks', webhooksRouter)
 app.use('/users', requireAuth, requireRole('ADMIN'), usersRouter)
 
 app.get('/health', (_req, res) => {
