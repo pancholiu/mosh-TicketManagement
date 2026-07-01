@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import CreateUserDialog from '@/components/CreateUserDialog'
+import EditUserDialog from '@/components/EditUserDialog'
 
 type User = {
   id: string
@@ -89,6 +90,7 @@ export default function UsersPage() {
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Joined</TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -103,6 +105,9 @@ export default function UsersPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {new Date(user.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell className="text-right">
+                  <EditUserDialog user={user} />
                 </TableCell>
               </TableRow>
             ))}
