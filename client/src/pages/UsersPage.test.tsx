@@ -97,6 +97,56 @@ describe('UsersPage', () => {
   })
 })
 
+describe('UsersPage - delete dialog', () => {
+  it('shows the confirmation dialog when the delete button is clicked', async () => {
+    mockedAxios.get.mockResolvedValue({ data: USERS })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Alice Admin')
+
+    await user.click(screen.getByRole('button', { name: 'Delete user' }))
+
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+  })
+
+  it('hides the confirmation dialog when Escape is pressed', async () => {
+    mockedAxios.get.mockResolvedValue({ data: USERS })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Alice Admin')
+
+    await user.click(screen.getByRole('button', { name: 'Delete user' }))
+    await user.keyboard('{Escape}')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('hides the confirmation dialog when Cancel is clicked', async () => {
+    mockedAxios.get.mockResolvedValue({ data: USERS })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Alice Admin')
+
+    await user.click(screen.getByRole('button', { name: 'Delete user' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('does not show a delete button for admin users', async () => {
+    mockedAxios.get.mockResolvedValue({ data: USERS })
+    renderPage()
+    await screen.findByText('Alice Admin')
+
+    // Alice is ADMIN — only Bob (AGENT) gets the delete button, so exactly one
+    expect(screen.getAllByRole('button', { name: 'Delete user' })).toHaveLength(1)
+  })
+})
+
 describe('UsersPage - dialog', () => {
   it('shows the dialog when "New User" is clicked', async () => {
     mockedAxios.get.mockResolvedValue({ data: USERS })
