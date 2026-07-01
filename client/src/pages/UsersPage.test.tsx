@@ -1,4 +1,5 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import axios from 'axios'
 import { renderWithQuery } from '@/test/render'
@@ -93,5 +94,50 @@ describe('UsersPage', () => {
     renderPage()
 
     expect(await screen.findByText('Forbidden')).toBeInTheDocument()
+  })
+})
+
+describe('UsersPage - dialog', () => {
+  it('shows the dialog when "New User" is clicked', async () => {
+    mockedAxios.get.mockResolvedValue({ data: USERS })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Alice Admin')
+
+    await user.click(screen.getByRole('button', { name: 'New User' }))
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('hides the dialog when Escape is pressed', async () => {
+    mockedAxios.get.mockResolvedValue({ data: USERS })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Alice Admin')
+
+    await user.click(screen.getByRole('button', { name: 'New User' }))
+    await user.keyboard('{Escape}')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('hides the dialog when clicking outside', async () => {
+    mockedAxios.get.mockResolvedValue({ data: USERS })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Alice Admin')
+
+    await user.click(screen.getByRole('button', { name: 'New User' }))
+
+    // Radix sets pointer-events:none on body when a dialog is open.
+    // Click the overlay backdrop (sibling rendered before the dialog content) instead.
+    const overlay = screen.getByRole('dialog').previousElementSibling as HTMLElement
+    await user.click(overlay)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 })

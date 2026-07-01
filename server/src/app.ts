@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { NextFunction, Request, Response } from 'express'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 import { toNodeHandler } from 'better-auth/node'
@@ -34,6 +34,13 @@ app.use('/users', requireAuth, requireRole('ADMIN'), usersRouter)
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' })
+})
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status ?? err.statusCode ?? 500
+  const message = err.body?.message ?? err.message ?? 'Internal server error'
+  res.status(status).json({ error: message })
 })
 
 export default app

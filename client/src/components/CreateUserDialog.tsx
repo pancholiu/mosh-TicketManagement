@@ -34,8 +34,10 @@ export default function CreateUserDialog() {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
 
-  const form = useForm<FormValues>({ resolver: zodResolver(schema) })
-  const { setError, formState: { isSubmitting } } = form
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { name: '', email: '', password: '' },
+  })
 
   const mutation = useMutation({
     mutationFn: (data: FormValues) => axios.post('/api/users', data).then(r => r.data),
@@ -44,17 +46,16 @@ export default function CreateUserDialog() {
       form.reset()
       setOpen(false)
     },
-  })
-
-  async function onSubmit(values: FormValues) {
-    try {
-      await mutation.mutateAsync(values)
-    } catch (err: unknown) {
+    onError: (err) => {
       const message = axios.isAxiosError(err)
         ? (err.response?.data?.error ?? err.message)
         : 'Failed to create user'
-      setError('root', { message })
-    }
+      form.setError('root', { message })
+    },
+  })
+
+  function onSubmit(values: FormValues) {
+    mutation.mutate(values)
   }
 
   return (
@@ -114,8 +115,8 @@ export default function CreateUserDialog() {
               <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
             )}
 
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? 'Creating…' : 'Create'}
+            <Button type="submit" disabled={mutation.isPending} className="w-full">
+              {mutation.isPending ? 'Creating…' : 'Create'}
             </Button>
           </form>
         </Form>
