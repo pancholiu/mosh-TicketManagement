@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { authClient } from './lib/auth-client'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
+import TicketsPage from './pages/TicketsPage'
 import UsersPage from './pages/UsersPage'
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -89,6 +90,7 @@ function App() {
         }
       >
         <Route index element={<HomePage />} />
+        <Route path="tickets" element={<TicketsPage />} />
         <Route
           path="users"
           element={

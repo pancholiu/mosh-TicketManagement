@@ -17,6 +17,9 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link to="/" className="font-semibold text-foreground">Ticket Management</Link>
+            <Link to="/tickets" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Tickets
+            </Link>
             {session?.user.role === 'ADMIN' && (
               <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Users
