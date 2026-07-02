@@ -18,6 +18,10 @@ const ADMIN_STORAGE_STATE = path.join(process.cwd(), 'e2e', '.auth', 'admin.json
 // ---------------------------------------------------------------------------
 async function saveAdminStorageState(browser: Browser): Promise<void> {
   fs.mkdirSync(path.dirname(ADMIN_STORAGE_STATE), { recursive: true })
+  // Playwright v1.52 applies test.use({ storageState }) to browser.newContext() in beforeAll.
+  // Always write an empty state first so: (a) the file exists for the read, and
+  // (b) the context starts unauthenticated so the login below creates a fresh session.
+  fs.writeFileSync(ADMIN_STORAGE_STATE, JSON.stringify({ cookies: [], origins: [] }))
 
   const context = await browser.newContext()
   const page = await context.newPage()
@@ -214,8 +218,9 @@ test.describe('Admin authenticated', () => {
 test.describe('Sign out', () => {
   test.use({ storageState: ADMIN_STORAGE_STATE })
 
-  test.beforeAll(async ({ browser }) => {
-    // Re-create the session file so this group is independent of Group 4.
+  test.beforeEach(async ({ browser }) => {
+    // Each sign-out test signs out, invalidating the server-side session. Use
+    // beforeEach (not beforeAll) so every test starts with a fresh valid session.
     await saveAdminStorageState(browser)
   })
 

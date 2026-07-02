@@ -3,6 +3,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://localhost:3000'
+const serverPort = process.env.VITE_PORT ? parseInt(process.env.VITE_PORT) : undefined
+
 export default defineConfig({
   test: {
     environment: 'jsdom',
@@ -16,13 +19,14 @@ export default defineConfig({
     },
   },
   server: {
+    port: serverPort,
     proxy: {
       '/api/auth': {
-        target: 'http://localhost:3000',
+        target: proxyTarget,
         changeOrigin: true,
       },
       '/api': {
-        target: 'http://localhost:3000',
+        target: proxyTarget,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

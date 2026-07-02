@@ -11,4 +11,10 @@ export default async function globalSetup() {
     stdio: 'inherit',
     env: { ...process.env },
   })
+
+  // Seed the test database with the admin user (idempotent — skips if already exists)
+  execSync('bun prisma/seed.ts', {
+    stdio: 'inherit',
+    env: { ...process.env },
+  })
 }

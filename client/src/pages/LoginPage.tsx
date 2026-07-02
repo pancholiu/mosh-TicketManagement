@@ -26,7 +26,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const { data: session, isPending: sessionPending } = authClient.useSession()
 
-  const form = useForm<FormValues>({ resolver: zodResolver(schema) })
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } })
   const { setError, formState: { isSubmitting } } = form
 
   if (sessionPending) {
