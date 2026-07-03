@@ -67,6 +67,41 @@ export const getTicket: RequestHandler<{ id: string }> = async (req, res) => {
   res.json(ticket)
 }
 
+const updateTicketSchema = z
+  .object({
+    status: z.enum(TicketStatus).optional(),
+    category: z.enum(Category).nullable().optional(),
+  })
+  .refine((data) => data.status !== undefined || data.category !== undefined, {
+    message: 'At least one of status or category is required',
+  })
+
+export const updateTicket: RequestHandler<{ id: string }> = async (req, res) => {
+  const parsed = updateTicketSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0].message })
+    return
+  }
+  const { status, category } = parsed.data
+
+  const ticket = await prisma.ticket.findUnique({ where: { id: req.params.id }, select: { id: true } })
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+
+  const updated = await prisma.ticket.update({
+    where: { id: req.params.id },
+    data: {
+      ...(status !== undefined && { status }),
+      ...(category !== undefined && { category }),
+    },
+    include: { assignedTo: { select: { id: true, name: true, email: true } } },
+  })
+
+  res.json(updated)
+}
+
 export const listAssignees: RequestHandler = async (_req, res) => {
   const users = await prisma.user.findMany({
     where: { deletedAt: null },

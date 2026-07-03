@@ -2,7 +2,6 @@ import axios from 'axios'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -63,7 +62,7 @@ function AssignTicketSelect({ ticket }: { ticket: TicketDetail }) {
         onValueChange={(value) => mutation.mutate(value === UNASSIGNED ? null : value)}
         disabled={mutation.isPending}
       >
-        <SelectTrigger className="h-8 w-56">
+        <SelectTrigger className="h-9 w-full px-1.5 text-xs">
           <SelectValue placeholder="Unassigned" />
         </SelectTrigger>
         <SelectContent>
@@ -86,16 +85,87 @@ function AssignTicketSelect({ ticket }: { ticket: TicketDetail }) {
   )
 }
 
-const STATUS_VARIANT: Record<TicketStatus, 'default' | 'secondary' | 'outline'> = {
-  OPEN: 'default',
-  RESOLVED: 'secondary',
-  CLOSED: 'outline',
+const STATUS_LABEL: Record<TicketStatus, string> = {
+  OPEN: 'Open',
+  RESOLVED: 'Resolved',
+  CLOSED: 'Closed',
 }
 
 const CATEGORY_LABEL: Record<Category, string> = {
   GENERAL_QUESTION: 'General',
   TECHNICAL_QUESTION: 'Technical',
   REFUND_REQUEST: 'Refund',
+}
+
+const NO_CATEGORY = 'NONE'
+
+async function updateTicket(
+  id: string,
+  data: { status?: TicketStatus; category?: Category | null }
+): Promise<TicketDetail> {
+  const res = await axios.patch<TicketDetail>(`/api/tickets/${id}`, data)
+  return res.data
+}
+
+function TicketStatusSelect({ ticket }: { ticket: TicketDetail }) {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (status: TicketStatus) => updateTicket(ticket.id, { status }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['tickets', ticket.id], updated)
+    },
+  })
+
+  return (
+    <Select
+      value={ticket.status}
+      onValueChange={(value) => mutation.mutate(value as TicketStatus)}
+      disabled={mutation.isPending}
+    >
+      <SelectTrigger className="h-9 w-full px-1.5 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {(Object.keys(STATUS_LABEL) as TicketStatus[]).map((status) => (
+          <SelectItem key={status} value={status}>
+            {STATUS_LABEL[status]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function TicketCategorySelect({ ticket }: { ticket: TicketDetail }) {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (category: Category | null) => updateTicket(ticket.id, { category }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['tickets', ticket.id], updated)
+    },
+  })
+
+  return (
+    <Select
+      value={ticket.category ?? NO_CATEGORY}
+      onValueChange={(value) => mutation.mutate(value === NO_CATEGORY ? null : (value as Category))}
+      disabled={mutation.isPending}
+    >
+      <SelectTrigger className="h-9 w-full px-1.5 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NO_CATEGORY}>Uncategorized</SelectItem>
+        {(Object.keys(CATEGORY_LABEL) as Category[]).map((category) => (
+          <SelectItem key={category} value={category}>
+            {CATEGORY_LABEL[category]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
 }
 
 async function fetchTicket(id: string): Promise<TicketDetail> {
@@ -114,10 +184,13 @@ export default function TicketDetailPage() {
 
   if (isPending) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
         <Skeleton className="h-9 w-32" />
         <Skeleton className="h-8 w-2/3" />
-        <Skeleton className="h-40 w-full" />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_140px] gap-8">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
       </div>
     )
   }
@@ -144,7 +217,7 @@ export default function TicketDetailPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <Button variant="ghost" size="sm" className="-ml-2" asChild>
         <Link to="/tickets">
           <ArrowLeft className="size-4" />
@@ -152,49 +225,55 @@ export default function TicketDetailPage() {
         </Link>
       </Button>
 
-      <div className="space-y-3">
-        <h1 className="text-3xl font-bold">{ticket.subject}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={STATUS_VARIANT[ticket.status]}>{ticket.status}</Badge>
-          {ticket.category ? (
-            <Badge variant="outline">{CATEGORY_LABEL[ticket.category]}</Badge>
-          ) : (
-            <Badge variant="outline" className="text-muted-foreground">
-              Uncategorized
-            </Badge>
-          )}
+      <h1 className="text-3xl font-bold">{ticket.subject}</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_140px] gap-8 items-start">
+        <div className="min-w-0 space-y-6">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div>
+              <dt className="text-muted-foreground">From</dt>
+              <dd className="font-medium">{ticket.from}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Received</dt>
+              <dd className="font-medium">{new Date(ticket.createdAt).toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Last updated</dt>
+              <dd className="font-medium">{new Date(ticket.updatedAt).toLocaleString()}</dd>
+            </div>
+          </dl>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Message</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{ticket.body}</p>
+            </CardContent>
+          </Card>
         </div>
+
+        <Card>
+          <CardHeader className="p-3">
+            <CardTitle className="text-base">Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 p-3 pt-0">
+            <div className="space-y-1.5">
+              <label className="text-sm text-muted-foreground">Status</label>
+              <TicketStatusSelect ticket={ticket} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-muted-foreground">Category</label>
+              <TicketCategorySelect ticket={ticket} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-muted-foreground">Assigned to</label>
+              <AssignTicketSelect ticket={ticket} />
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-        <div>
-          <dt className="text-muted-foreground">From</dt>
-          <dd className="font-medium">{ticket.from}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Assigned to</dt>
-          <dd className="font-medium">
-            <AssignTicketSelect ticket={ticket} />
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Received</dt>
-          <dd className="font-medium">{new Date(ticket.createdAt).toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Last updated</dt>
-          <dd className="font-medium">{new Date(ticket.updatedAt).toLocaleString()}</dd>
-        </div>
-      </dl>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Message</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">{ticket.body}</p>
-        </CardContent>
-      </Card>
     </div>
   )
 }
