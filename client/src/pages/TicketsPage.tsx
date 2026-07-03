@@ -8,8 +8,9 @@ import {
   flexRender,
   type SortingState,
 } from '@tanstack/react-table'
-import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -58,15 +59,27 @@ type Filters = {
   search: string
 }
 
-async function fetchTickets(sorting: SortingState, filters: Filters): Promise<Ticket[]> {
+type TicketsPage = {
+  data: Ticket[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+const PAGE_SIZE = 10
+
+async function fetchTickets(sorting: SortingState, filters: Filters, page: number): Promise<TicketsPage> {
   const sort = sorting[0]
-  const res = await axios.get<Ticket[]>('/api/tickets', {
+  const res = await axios.get<TicketsPage>('/api/tickets', {
     params: {
       sortBy: sort?.id,
       sortOrder: sort ? (sort.desc ? 'desc' : 'asc') : undefined,
       status: filters.status === 'ALL' ? undefined : filters.status,
       category: filters.category === 'ALL' ? undefined : filters.category,
       search: filters.search || undefined,
+      page,
+      pageSize: PAGE_SIZE,
     },
   })
   return res.data
@@ -116,6 +129,7 @@ export default function TicketsPage() {
   const [category, setCategory] = useState<Filters['category']>('ALL')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(searchInput.trim()), 300)
@@ -124,11 +138,21 @@ export default function TicketsPage() {
 
   const filters: Filters = { status, category, search }
 
-  const { data: tickets, isPending, error } = useQuery({
-    queryKey: ['tickets', sorting, filters],
-    queryFn: () => fetchTickets(sorting, filters),
+  // Reset to page 1 whenever sorting or filters change, so the user isn't
+  // left stranded on a page number that no longer has results.
+  useEffect(() => {
+    setPage(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorting, status, category, search])
+
+  const { data: result, isPending, error } = useQuery({
+    queryKey: ['tickets', sorting, filters, page],
+    queryFn: () => fetchTickets(sorting, filters, page),
     placeholderData: keepPreviousData,
   })
+
+  const tickets = result?.data
+  const totalPages = result?.totalPages ?? 1
 
   const table = useReactTable({
     data: tickets ?? [],
@@ -136,6 +160,8 @@ export default function TicketsPage() {
     state: { sorting },
     onSortingChange: setSorting,
     manualSorting: true,
+    manualPagination: true,
+    pageCount: totalPages,
     getCoreRowModel: getCoreRowModel(),
   })
 
@@ -187,7 +213,7 @@ export default function TicketsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <div className="flex items-baseline gap-3">
         <h1 className="text-3xl font-bold">Tickets</h1>
-        <span className="text-muted-foreground text-sm">{tickets.length} total</span>
+        <span className="text-muted-foreground text-sm">{result.total} total</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -279,6 +305,32 @@ export default function TicketsPage() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground text-sm">
+          Page {result.page} of {totalPages}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => p - 1)}
+            disabled={result.page <= 1}
+          >
+            <ChevronLeft className="size-4" />
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={result.page >= totalPages}
+          >
+            Next
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   )

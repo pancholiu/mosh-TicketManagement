@@ -9,6 +9,8 @@ const listTicketsQuerySchema = z.object({
   status: z.enum(TicketStatus).optional(),
   category: z.enum([...Object.values(Category), 'NONE']).optional(),
   search: z.string().trim().min(1).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
 })
 
 export const listTickets: RequestHandler = async (req, res) => {
@@ -17,7 +19,7 @@ export const listTickets: RequestHandler = async (req, res) => {
     res.status(400).json({ error: parsed.error.issues[0].message })
     return
   }
-  const { sortBy, sortOrder, status, category, search } = parsed.data
+  const { sortBy, sortOrder, status, category, search, page, pageSize } = parsed.data
 
   const where: Prisma.TicketWhereInput = {
     status,
@@ -30,17 +32,23 @@ export const listTickets: RequestHandler = async (req, res) => {
     ]
   }
 
-  const tickets = await prisma.ticket.findMany({
-    where,
-    select: {
-      id: true,
-      subject: true,
-      from: true,
-      status: true,
-      category: true,
-      createdAt: true,
-    },
-    orderBy: { [sortBy]: sortOrder },
-  })
-  res.json(tickets)
+  const [tickets, total] = await Promise.all([
+    prisma.ticket.findMany({
+      where,
+      select: {
+        id: true,
+        subject: true,
+        from: true,
+        status: true,
+        category: true,
+        createdAt: true,
+      },
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.ticket.count({ where }),
+  ])
+
+  res.json({ data: tickets, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) })
 }
