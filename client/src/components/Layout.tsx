@@ -1,6 +1,7 @@
 import { Outlet, useNavigate, Link } from 'react-router-dom'
 import { authClient } from '../lib/auth-client'
 import { Button } from '@/components/ui/button'
+import { TextLink } from '@/components/ui/link'
 
 export default function Layout() {
   const navigate = useNavigate()
@@ -17,14 +18,8 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link to="/" className="font-semibold text-foreground">Ticket Management</Link>
-            <Link to="/tickets" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Tickets
-            </Link>
-            {session?.user.role === 'ADMIN' && (
-              <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Users
-              </Link>
-            )}
+            <TextLink to="/tickets">Tickets</TextLink>
+            {session?.user.role === 'ADMIN' && <TextLink to="/users">Users</TextLink>}
           </div>
 
           <div className="flex items-center gap-4">

@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TextLink, linkVariants } from '@/components/ui/link'
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -90,7 +92,11 @@ const columnHelper = createColumnHelper<Ticket>()
 const columns = [
   columnHelper.accessor('subject', {
     header: 'Subject',
-    cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+    cell: (info) => (
+      <TextLink to={`/tickets/${info.row.original.id}`} variant="subtle" className="font-medium text-foreground">
+        {info.getValue()}
+      </TextLink>
+    ),
   }),
   columnHelper.accessor('from', {
     header: 'From',
@@ -254,7 +260,7 @@ export default function TicketsPage() {
               setCategory('ALL')
               setSearchInput('')
             }}
-            className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+            className={cn(linkVariants({ variant: 'nav' }), 'underline underline-offset-2')}
           >
             Clear filters
           </button>
