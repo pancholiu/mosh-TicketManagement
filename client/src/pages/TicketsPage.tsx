@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import {
   useReactTable,
   getCoreRowModel,
@@ -10,7 +10,15 @@ import {
 } from '@tanstack/react-table'
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -44,10 +52,22 @@ const CATEGORY_LABEL: Record<Category, string> = {
   REFUND_REQUEST: 'Refund',
 }
 
-async function fetchTickets(sorting: SortingState): Promise<Ticket[]> {
+type Filters = {
+  status: TicketStatus | 'ALL'
+  category: Category | 'NONE' | 'ALL'
+  search: string
+}
+
+async function fetchTickets(sorting: SortingState, filters: Filters): Promise<Ticket[]> {
   const sort = sorting[0]
   const res = await axios.get<Ticket[]>('/api/tickets', {
-    params: sort ? { sortBy: sort.id, sortOrder: sort.desc ? 'desc' : 'asc' } : undefined,
+    params: {
+      sortBy: sort?.id,
+      sortOrder: sort ? (sort.desc ? 'desc' : 'asc') : undefined,
+      status: filters.status === 'ALL' ? undefined : filters.status,
+      category: filters.category === 'ALL' ? undefined : filters.category,
+      search: filters.search || undefined,
+    },
   })
   return res.data
 }
@@ -92,10 +112,22 @@ const columns = [
 
 export default function TicketsPage() {
   const [sorting, setSorting] = useState<SortingState>([])
+  const [status, setStatus] = useState<Filters['status']>('ALL')
+  const [category, setCategory] = useState<Filters['category']>('ALL')
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setSearch(searchInput.trim()), 300)
+    return () => clearTimeout(timeout)
+  }, [searchInput])
+
+  const filters: Filters = { status, category, search }
 
   const { data: tickets, isPending, error } = useQuery({
-    queryKey: ['tickets', sorting],
-    queryFn: () => fetchTickets(sorting),
+    queryKey: ['tickets', sorting, filters],
+    queryFn: () => fetchTickets(sorting, filters),
+    placeholderData: keepPreviousData,
   })
 
   const table = useReactTable({
@@ -149,11 +181,58 @@ export default function TicketsPage() {
     )
   }
 
+  const hasActiveFilters = status !== 'ALL' || category !== 'ALL' || search !== ''
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <div className="flex items-baseline gap-3">
         <h1 className="text-3xl font-bold">Tickets</h1>
         <span className="text-muted-foreground text-sm">{tickets.length} total</span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Search subject or sender..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="max-w-xs"
+        />
+        <Select value={status} onValueChange={(value) => setStatus(value as Filters['status'])}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All statuses</SelectItem>
+            <SelectItem value="OPEN">Open</SelectItem>
+            <SelectItem value="RESOLVED">Resolved</SelectItem>
+            <SelectItem value="CLOSED">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={category} onValueChange={(value) => setCategory(value as Filters['category'])}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All categories</SelectItem>
+            <SelectItem value="GENERAL_QUESTION">General</SelectItem>
+            <SelectItem value="TECHNICAL_QUESTION">Technical</SelectItem>
+            <SelectItem value="REFUND_REQUEST">Refund</SelectItem>
+            <SelectItem value="NONE">Uncategorized</SelectItem>
+          </SelectContent>
+        </Select>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={() => {
+              setStatus('ALL')
+              setCategory('ALL')
+              setSearchInput('')
+            }}
+            className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       <div className="border rounded-lg">
@@ -184,7 +263,7 @@ export default function TicketsPage() {
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="text-center py-10 text-muted-foreground">
-                  No tickets yet
+                  {hasActiveFilters ? 'No tickets match your filters' : 'No tickets yet'}
                 </TableCell>
               </TableRow>
             ) : (
