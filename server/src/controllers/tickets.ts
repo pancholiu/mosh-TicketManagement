@@ -66,3 +66,47 @@ export const getTicket: RequestHandler<{ id: string }> = async (req, res) => {
   }
   res.json(ticket)
 }
+
+export const listAssignees: RequestHandler = async (_req, res) => {
+  const users = await prisma.user.findMany({
+    where: { deletedAt: null },
+    select: { id: true, name: true, email: true, role: true },
+    orderBy: { name: 'asc' },
+  })
+  res.json(users)
+}
+
+const assignTicketSchema = z.object({
+  assignedToId: z.string().min(1).nullable(),
+})
+
+export const assignTicket: RequestHandler<{ id: string }> = async (req, res) => {
+  const parsed = assignTicketSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0].message })
+    return
+  }
+  const { assignedToId } = parsed.data
+
+  const ticket = await prisma.ticket.findUnique({ where: { id: req.params.id }, select: { id: true } })
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+
+  if (assignedToId) {
+    const assignee = await prisma.user.findUnique({ where: { id: assignedToId }, select: { deletedAt: true } })
+    if (!assignee || assignee.deletedAt) {
+      res.status(400).json({ error: 'Assignee not found' })
+      return
+    }
+  }
+
+  const updated = await prisma.ticket.update({
+    where: { id: req.params.id },
+    data: { assignedToId },
+    include: { assignedTo: { select: { id: true, name: true, email: true } } },
+  })
+
+  res.json(updated)
+}
