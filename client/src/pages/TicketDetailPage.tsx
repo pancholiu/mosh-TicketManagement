@@ -225,7 +225,11 @@ function ReplyList({ replies }: { replies: Reply[] }) {
 }
 
 const replySchema = z.object({
-  body: z.string().trim().min(1, 'Reply cannot be empty'),
+  body: z
+    .string()
+    .trim()
+    .min(1, 'Reply cannot be empty')
+    .max(2000, 'Reply must be 2000 characters or fewer'),
 })
 
 type ReplyFormValues = z.infer<typeof replySchema>
