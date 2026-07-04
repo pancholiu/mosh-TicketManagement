@@ -31,7 +31,10 @@ export const deleteUser: RequestHandler = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id }, select: { role: true } })
   if (!user) { res.status(404).json({ error: 'User not found' }); return }
   if (user.role === Role.ADMIN) { res.status(403).json({ error: 'Admin users cannot be deleted' }); return }
-  await prisma.user.update({ where: { id }, data: { deletedAt: new Date() } })
+  await prisma.$transaction([
+    prisma.user.update({ where: { id }, data: { deletedAt: new Date() } }),
+    prisma.ticket.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } }),
+  ])
   res.status(204).end()
 }
 
