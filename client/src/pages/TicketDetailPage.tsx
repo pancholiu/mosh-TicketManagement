@@ -294,6 +294,8 @@ export default function TicketDetailPage() {
     queryKey: ['tickets', id],
     queryFn: () => fetchTicket(id!),
     enabled: !!id,
+    retry: (failureCount, error) =>
+      axios.isAxiosError(error) && error.response?.status === 404 ? false : failureCount < 3,
   })
 
   if (isPending) {

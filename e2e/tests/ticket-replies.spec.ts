@@ -42,8 +42,7 @@ async function saveAdminStorageState(browser: Browser): Promise<void> {
 // ---------------------------------------------------------------------------
 // Helper — creates a fresh ticket via the webhook and returns its id, so each
 // test can navigate straight to /tickets/:id without depending on list-page
-// row order or accumulated data from prior runs. Every ticket starts with
-// zero replies, which also gives the empty-state test a clean fixture.
+// row order or accumulated data from prior runs.
 // ---------------------------------------------------------------------------
 async function createTicket(request: APIRequestContext, subject: string): Promise<string> {
   const response = await request.post(WEBHOOK_URL, {
@@ -74,19 +73,15 @@ test.describe('Ticket replies — authenticated', () => {
   })
 
   // -------------------------------------------------------------------------
-  // Empty state
-  // -------------------------------------------------------------------------
-
-  test('a ticket with no replies shows "No replies yet."', async ({ page, request }) => {
-    const ticketId = await createTicket(request, 'E2E Reply Test - Empty State')
-    await page.goto(`/tickets/${ticketId}`)
-
-    await expect(page.getByRole('heading', { name: 'E2E Reply Test - Empty State' })).toBeVisible()
-    await expect(page.getByText('No replies yet.')).toBeVisible()
-  })
-
-  // -------------------------------------------------------------------------
   // Submitting a reply
+  //
+  // The empty-state render, the immediate-append/textarea-clear behavior, and
+  // the "Agent" badge logic are already covered by TicketDetailPage.test.tsx
+  // (Vitest, mocked axios) — not repeated here. What a unit test *cannot*
+  // verify is that the server derives the real author/senderType from the
+  // session rather than trusting client input, so that's what this test
+  // focuses on: a real POST through the real auth session must come back
+  // attributed to the actual signed-in user.
   // -------------------------------------------------------------------------
 
   test('submitting a reply shows it immediately with author name and "Agent" badge, and clears the textarea', async ({
@@ -144,52 +139,9 @@ test.describe('Ticket replies — authenticated', () => {
     await expect(page.getByText(replyBody, { exact: true })).toBeVisible()
   })
 
-  // -------------------------------------------------------------------------
-  // Client-side validation
-  // -------------------------------------------------------------------------
-
-  test('submitting an empty reply shows "Reply cannot be empty" and sends no request', async ({
-    page,
-    request,
-  }) => {
-    const ticketId = await createTicket(request, 'E2E Reply Test - Empty Validation')
-    await page.goto(`/tickets/${ticketId}`)
-    await expect(page.getByRole('heading', { name: 'E2E Reply Test - Empty Validation' })).toBeVisible()
-
-    let replyRequestFired = false
-    page.on('request', (req) => {
-      if (req.method() === 'POST' && req.url().includes(`/tickets/${ticketId}/replies`)) {
-        replyRequestFired = true
-      }
-    })
-
-    await page.getByRole('button', { name: 'Send reply' }).click()
-
-    await expect(page.getByText('Reply cannot be empty')).toBeVisible()
-    expect(replyRequestFired).toBe(false)
-  })
-
-  test('submitting a whitespace-only reply shows "Reply cannot be empty" and sends no request', async ({
-    page,
-    request,
-  }) => {
-    const ticketId = await createTicket(request, 'E2E Reply Test - Whitespace Validation')
-    await page.goto(`/tickets/${ticketId}`)
-    await expect(page.getByRole('heading', { name: 'E2E Reply Test - Whitespace Validation' })).toBeVisible()
-
-    let replyRequestFired = false
-    page.on('request', (req) => {
-      if (req.method() === 'POST' && req.url().includes(`/tickets/${ticketId}/replies`)) {
-        replyRequestFired = true
-      }
-    })
-
-    await page.getByLabel('Reply').fill('   ')
-    await page.getByRole('button', { name: 'Send reply' }).click()
-
-    await expect(page.getByText('Reply cannot be empty')).toBeVisible()
-    expect(replyRequestFired).toBe(false)
-  })
+  // Empty/whitespace client-side validation (blocked submit, no request
+  // fired) is pure frontend logic with no server involvement either way —
+  // already covered by TicketDetailPage.test.tsx, so not duplicated here.
 
   // -------------------------------------------------------------------------
   // Chronological ordering

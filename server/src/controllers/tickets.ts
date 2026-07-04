@@ -100,7 +100,13 @@ export const updateTicket: RequestHandler<{ id: string }> = async (req, res) => 
       ...(status !== undefined && { status }),
       ...(category !== undefined && { category }),
     },
-    include: { assignedTo: { select: { id: true, name: true, email: true } } },
+    include: {
+      assignedTo: { select: { id: true, name: true, email: true } },
+      replies: {
+        include: { author: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
   })
 
   res.json(updated)
@@ -144,7 +150,13 @@ export const assignTicket: RequestHandler<{ id: string }> = async (req, res) => 
   const updated = await prisma.ticket.update({
     where: { id: req.params.id },
     data: { assignedToId },
-    include: { assignedTo: { select: { id: true, name: true, email: true } } },
+    include: {
+      assignedTo: { select: { id: true, name: true, email: true } },
+      replies: {
+        include: { author: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
   })
 
   res.json(updated)

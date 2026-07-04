@@ -94,6 +94,14 @@ bun run test:e2e       # headless
 bun run test:e2e:ui    # interactive UI
 ```
 
+**Scope E2E tests to what unit tests structurally cannot cover.** Before adding or keeping an E2E test, check whether a Vitest component test already asserts the same claim with mocked Axios. If so, drop the E2E test — real browser + real server + real DB is expensive; don't pay for it twice. Keep E2E only for things a mocked unit test can never prove:
+- Real auth/session behavior (login required, redirects, session-derived server state like `authorId`)
+- Real persistence (a mutation survives a page reload — proves the DB round-trip, not just a mocked response)
+- Real server-side query behavior (Prisma `orderBy`, filtering) that a unit test would otherwise fake by handing the component a pre-ordered array
+- Divergence between the unit test's harness config and the real app's config (e.g. `client/src/test/render.tsx`'s `QueryClient` sets `retry: false`, so a real `retry`/backoff bug — like queries retrying on 404 — can *only* be caught by an E2E test; leave a comment on tests kept for this reason so they aren't mistaken for redundant later)
+
+Pure client-side logic (Zod validation blocking a submit, a component rendering an empty-state string, a `Link` navigating) belongs in Vitest, not Playwright, even if no unit test happens to exist yet for it — write the unit test rather than reaching for E2E.
+
 ## Key Conventions
 
 - Server entry: `server/src/index.ts` → imports `app.ts`, binds to `PORT`
