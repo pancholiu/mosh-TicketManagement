@@ -1,5 +1,12 @@
 import { Router } from 'express'
-import { assignTicket, getTicket, listAssignees, listTickets, updateTicket } from '../controllers/tickets'
+import {
+  assignTicket,
+  createReply,
+  getTicket,
+  listAssignees,
+  listTickets,
+  updateTicket,
+} from '../controllers/tickets'
 
 const router = Router()
 
@@ -8,5 +15,6 @@ router.get('/assignees', listAssignees)
 router.get('/:id', getTicket)
 router.patch('/:id', updateTicket)
 router.patch('/:id/assign', assignTicket)
+router.post('/:id/replies', createReply)
 
 export default router

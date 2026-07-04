@@ -23,6 +23,7 @@ model User {
   sessions Session[]
   accounts Account[]
   tickets  Ticket[]
+  replies  Reply[]
 }
 
 model Session {
@@ -81,8 +82,29 @@ model Ticket {
   assignedTo   User?   @relation(fields: [assignedToId], references: [id])
   assignedToId String?
 
+  replies Reply[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Reply {
+  id         String     @id @default(cuid())
+  body       String
+  senderType SenderType
+
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
+  ticketId String
+
+  author   User?   @relation(fields: [authorId], references: [id])
+  authorId String?
+
+  createdAt DateTime @default(now())
+}
+
+enum SenderType {
+  AGENT
+  CUSTOMER
 }
 
 enum TicketStatus {

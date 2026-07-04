@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express'
 import { z } from 'zod'
-import { Prisma, Category, TicketStatus } from '@prisma/client'
+import { Prisma, Category, TicketStatus, SenderType } from '@prisma/client'
 import prisma from '../lib/db'
 
 const listTicketsQuerySchema = z.object({
@@ -58,6 +58,10 @@ export const getTicket: RequestHandler<{ id: string }> = async (req, res) => {
     where: { id: req.params.id },
     include: {
       assignedTo: { select: { id: true, name: true, email: true } },
+      replies: {
+        include: { author: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: 'asc' },
+      },
     },
   })
   if (!ticket) {
@@ -144,4 +148,34 @@ export const assignTicket: RequestHandler<{ id: string }> = async (req, res) => 
   })
 
   res.json(updated)
+}
+
+const createReplySchema = z.object({
+  body: z.string().trim().min(1, 'Reply cannot be empty'),
+})
+
+export const createReply: RequestHandler<{ id: string }> = async (req, res) => {
+  const parsed = createReplySchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0].message })
+    return
+  }
+
+  const ticket = await prisma.ticket.findUnique({ where: { id: req.params.id }, select: { id: true } })
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+
+  const reply = await prisma.reply.create({
+    data: {
+      body: parsed.data.body,
+      ticketId: req.params.id,
+      senderType: SenderType.AGENT,
+      authorId: res.locals.session.user.id,
+    },
+    include: { author: { select: { id: true, name: true, email: true } } },
+  })
+
+  res.status(201).json(reply)
 }

@@ -12,5 +12,5 @@ export const auth = betterAuth({
       role: { type: "string", input: false },
     },
   },
-  plugins: [admin()],
+  plugins: [admin({ defaultRole: "AGENT" })],
 })

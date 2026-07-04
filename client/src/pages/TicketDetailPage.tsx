@@ -1,10 +1,23 @@
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import axios from 'axios'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import {
   Select,
   SelectContent,
@@ -16,8 +29,17 @@ import {
 type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED'
 type Category = 'GENERAL_QUESTION' | 'TECHNICAL_QUESTION' | 'REFUND_REQUEST'
 type Role = 'ADMIN' | 'AGENT'
+type SenderType = 'AGENT' | 'CUSTOMER'
 
 type Assignee = { id: string; name: string; email: string; role?: Role }
+
+type Reply = {
+  id: string
+  body: string
+  senderType: SenderType
+  createdAt: string
+  author: { id: string; name: string; email: string } | null
+}
 
 type TicketDetail = {
   id: string
@@ -27,6 +49,7 @@ type TicketDetail = {
   status: TicketStatus
   category: Category | null
   assignedTo: Assignee | null
+  replies: Reply[]
   createdAt: string
   updatedAt: string
 }
@@ -173,6 +196,97 @@ async function fetchTicket(id: string): Promise<TicketDetail> {
   return res.data
 }
 
+async function createReply(ticketId: string, body: string): Promise<Reply> {
+  const res = await axios.post<Reply>(`/api/tickets/${ticketId}/replies`, { body })
+  return res.data
+}
+
+function ReplyList({ replies }: { replies: Reply[] }) {
+  if (replies.length === 0) {
+    return <p className="text-sm text-muted-foreground">No replies yet.</p>
+  }
+
+  return (
+    <div className="divide-y divide-border">
+      {replies.map((reply) => (
+        <div key={reply.id} className="py-4 first:pt-0 space-y-1">
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-medium">{reply.author?.name ?? 'Customer'}</span>
+            <Badge variant={reply.senderType === 'AGENT' ? 'default' : 'secondary'} className="text-[10px]">
+              {reply.senderType === 'AGENT' ? 'Agent' : 'Customer'}
+            </Badge>
+            <span className="text-xs text-muted-foreground">{new Date(reply.createdAt).toLocaleString()}</span>
+          </div>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{reply.body}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const replySchema = z.object({
+  body: z.string().trim().min(1, 'Reply cannot be empty'),
+})
+
+type ReplyFormValues = z.infer<typeof replySchema>
+
+function ReplyForm({ ticketId }: { ticketId: string }) {
+  const queryClient = useQueryClient()
+
+  const form = useForm<ReplyFormValues>({
+    resolver: zodResolver(replySchema),
+    defaultValues: { body: '' },
+  })
+
+  const mutation = useMutation({
+    mutationFn: (values: ReplyFormValues) => createReply(ticketId, values.body),
+    onSuccess: (reply) => {
+      queryClient.setQueryData<TicketDetail>(['tickets', ticketId], (old) =>
+        old ? { ...old, replies: [...old.replies, reply] } : old
+      )
+      form.reset()
+    },
+    onError: (err) => {
+      const message = axios.isAxiosError(err)
+        ? (err.response?.data?.error ?? err.message)
+        : 'Failed to submit reply'
+      form.setError('root', { message })
+    },
+  })
+
+  function onSubmit(values: ReplyFormValues) {
+    mutation.mutate(values)
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <FormField
+          control={form.control}
+          name="body"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Reply</FormLabel>
+              <FormControl>
+                <Textarea rows={4} placeholder="Write a reply…" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {form.formState.errors.root && (
+          <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
+        )}
+
+        <Button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? 'Sending…' : 'Send reply'}
+        </Button>
+      </form>
+    </Form>
+  )
+}
+
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>()
 
@@ -250,6 +364,16 @@ export default function TicketDetailPage() {
             </CardHeader>
             <CardContent>
               <p className="whitespace-pre-wrap text-sm leading-relaxed">{ticket.body}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Replies</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <ReplyList replies={ticket.replies} />
+              <ReplyForm ticketId={ticket.id} />
             </CardContent>
           </Card>
         </div>
