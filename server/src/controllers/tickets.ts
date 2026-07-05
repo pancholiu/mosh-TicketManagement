@@ -1,6 +1,8 @@
 import { RequestHandler } from 'express'
 import { z } from 'zod'
 import { Prisma, Category, TicketStatus, SenderType } from '@prisma/client'
+import { google } from '@ai-sdk/google'
+import { generateText } from 'ai'
 import prisma from '../lib/db'
 
 const listTicketsQuerySchema = z.object({
@@ -194,4 +196,60 @@ export const createReply: RequestHandler<{ id: string }> = async (req, res) => {
   })
 
   res.status(201).json(reply)
+}
+
+const polishReplySchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, 'Reply cannot be empty')
+    .max(2000, 'Reply must be 2000 characters or fewer'),
+})
+
+// Tickets only store the customer's email, not a display name — approximate one
+// from the local part (e.g. "jane.doe@x.com" -> "Jane Doe") for the greeting.
+function deriveCustomerName(email: string): string {
+  return email
+    .split('@')[0]
+    .split(/[._+-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+export const polishReply: RequestHandler<{ id: string }> = async (req, res) => {
+  const parsed = polishReplySchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0].message })
+    return
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: req.params.id },
+    select: { subject: true, body: true, from: true },
+  })
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+
+  const agentName = res.locals.session.user.name
+  const customerName = deriveCustomerName(ticket.from)
+
+  const { text } = await generateText({
+    model: google('gemini-2.5-flash'),
+    prompt: `You are helping a support agent polish a draft reply to a customer support ticket.
+
+Ticket subject: ${ticket.subject}
+Customer's message: ${ticket.body}
+
+Agent's draft reply:
+"""
+${parsed.data.body}
+"""
+
+Rewrite the draft to be clear, professional, and courteous, while preserving its meaning and intent. Do not add new information, facts, or commitments the draft doesn't already contain. Open the reply by addressing the customer by name: ${customerName}. End the reply with a signature closing (e.g. "Best regards,") signed with the agent's name: ${agentName}. If the draft already has a greeting or signature, replace them with these instead of duplicating them. Respond with only the polished reply text — no preamble, labels, or quotes.`,
+  })
+
+  res.json({ body: text.trim() })
 }

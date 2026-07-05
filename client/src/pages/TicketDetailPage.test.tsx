@@ -254,3 +254,50 @@ describe('TicketDetailPage - reply submission', () => {
     expect(await screen.findByText('Ticket not found')).toBeInTheDocument()
   })
 })
+
+describe('TicketDetailPage - polish reply', () => {
+  it('disables the Polish button when the draft is empty', async () => {
+    mockTicketAndAssignees(BASE_TICKET)
+    renderPage()
+    await screen.findByText('Cannot log in')
+
+    expect(screen.getByRole('button', { name: /Polish/ })).toBeDisabled()
+  })
+
+  it('sends the draft body to the polish-reply endpoint and fills in the result', async () => {
+    mockTicketAndAssignees(BASE_TICKET)
+    mockedAxios.post.mockResolvedValue({ data: { body: 'Thank you for reaching out — I am looking into this now.' } })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Cannot log in')
+
+    const textarea = screen.getByLabelText('Reply')
+    await user.type(textarea, 'looking into it')
+    await user.click(screen.getByRole('button', { name: /Polish/ }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(`/api/tickets/${TICKET_ID}/polish-reply`, {
+        body: 'looking into it',
+      })
+    })
+    expect(await screen.findByDisplayValue('Thank you for reaching out — I am looking into this now.')).toBeInTheDocument()
+  })
+
+  it('shows the server error message when polishing fails', async () => {
+    mockTicketAndAssignees(BASE_TICKET)
+    const err = Object.assign(new Error('Request failed'), {
+      isAxiosError: true,
+      response: { data: { error: 'Failed to polish reply' } },
+    })
+    mockedAxios.post.mockRejectedValue(err)
+    mockedAxios.isAxiosError.mockReturnValue(true)
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Cannot log in')
+
+    await user.type(screen.getByLabelText('Reply'), 'looking into it')
+    await user.click(screen.getByRole('button', { name: /Polish/ }))
+
+    expect(await screen.findByText('Failed to polish reply')).toBeInTheDocument()
+  })
+})

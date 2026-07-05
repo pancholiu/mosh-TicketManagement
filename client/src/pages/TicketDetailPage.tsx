@@ -4,7 +4,7 @@ import { z } from 'zod'
 import axios from 'axios'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -201,6 +201,11 @@ async function createReply(ticketId: string, body: string): Promise<Reply> {
   return res.data
 }
 
+async function polishReply(ticketId: string, body: string): Promise<string> {
+  const res = await axios.post<{ body: string }>(`/api/tickets/${ticketId}/polish-reply`, { body })
+  return res.data.body
+}
+
 function ReplyList({ replies }: { replies: Reply[] }) {
   if (replies.length === 0) {
     return <p className="text-sm text-muted-foreground">No replies yet.</p>
@@ -258,6 +263,22 @@ function ReplyForm({ ticketId }: { ticketId: string }) {
     },
   })
 
+  const polishMutation = useMutation({
+    mutationFn: (body: string) => polishReply(ticketId, body),
+    onSuccess: (polished) => {
+      form.clearErrors('root')
+      form.setValue('body', polished, { shouldValidate: true, shouldDirty: true })
+    },
+    onError: (err) => {
+      const message = axios.isAxiosError(err)
+        ? (err.response?.data?.error ?? err.message)
+        : 'Failed to polish reply'
+      form.setError('root', { message })
+    },
+  })
+
+  const draftBody = form.watch('body')
+
   function onSubmit(values: ReplyFormValues) {
     mutation.mutate(values)
   }
@@ -283,9 +304,20 @@ function ReplyForm({ ticketId }: { ticketId: string }) {
           <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
         )}
 
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? 'Sending…' : 'Send reply'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={polishMutation.isPending || mutation.isPending || !draftBody.trim()}
+            onClick={() => polishMutation.mutate(draftBody)}
+          >
+            <Sparkles className="size-4" />
+            {polishMutation.isPending ? 'Polishing…' : 'Polish'}
+          </Button>
+          <Button type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? 'Sending…' : 'Send reply'}
+          </Button>
+        </div>
       </form>
     </Form>
   )

@@ -5,6 +5,7 @@ import {
   getTicket,
   listAssignees,
   listTickets,
+  polishReply,
   updateTicket,
 } from '../controllers/tickets'
 
@@ -16,5 +17,6 @@ router.get('/:id', getTicket)
 router.patch('/:id', updateTicket)
 router.patch('/:id/assign', assignTicket)
 router.post('/:id/replies', createReply)
+router.post('/:id/polish-reply', polishReply)
 
 export default router
