@@ -31,7 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED'
+type TicketStatus = 'NEW' | 'PROCESSING' | 'OPEN' | 'RESOLVED' | 'CLOSED'
 type Category = 'GENERAL_QUESTION' | 'TECHNICAL_QUESTION' | 'REFUND_REQUEST'
 
 type Ticket = {
@@ -44,6 +44,8 @@ type Ticket = {
 }
 
 const STATUS_VARIANT: Record<TicketStatus, 'default' | 'secondary' | 'outline'> = {
+  NEW: 'outline',
+  PROCESSING: 'secondary',
   OPEN: 'default',
   RESOLVED: 'secondary',
   CLOSED: 'outline',
@@ -235,6 +237,8 @@ export default function TicketsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All statuses</SelectItem>
+            <SelectItem value="NEW">New</SelectItem>
+            <SelectItem value="PROCESSING">Processing</SelectItem>
             <SelectItem value="OPEN">Open</SelectItem>
             <SelectItem value="RESOLVED">Resolved</SelectItem>
             <SelectItem value="CLOSED">Closed</SelectItem>

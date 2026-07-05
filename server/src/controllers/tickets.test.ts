@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { polishReply, summarizeTicket } from './tickets'
+import { listTickets, polishReply, summarizeTicket } from './tickets'
 
 vi.mock('../lib/db', () => ({
   default: {
-    ticket: { findUnique: vi.fn() },
+    ticket: { findUnique: vi.fn(), findMany: vi.fn(), count: vi.fn() },
   },
 }))
 
@@ -19,6 +19,8 @@ import prisma from '../lib/db'
 import { generateText } from 'ai'
 
 const mockedFindUnique = vi.mocked(prisma.ticket.findUnique)
+const mockedFindMany = vi.mocked(prisma.ticket.findMany)
+const mockedCount = vi.mocked(prisma.ticket.count)
 const mockedGenerateText = vi.mocked(generateText)
 
 const TICKET_ID = 't1'
@@ -41,6 +43,54 @@ function makeReqRes(body: object = {}, agent: { id: string; name: string } = { i
 
 beforeEach(() => {
   vi.resetAllMocks()
+})
+
+function makeListReqRes(query: Record<string, string> = {}) {
+  const req = { query } as any
+  const res = {
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+  } as any
+  return { req, res }
+}
+
+describe('listTickets', () => {
+  beforeEach(() => {
+    mockedFindMany.mockResolvedValue([])
+    mockedCount.mockResolvedValue(0)
+  })
+
+  it('excludes NEW and PROCESSING tickets by default', async () => {
+    const { req, res } = makeListReqRes()
+
+    await listTickets(req, res, vi.fn())
+
+    expect(mockedFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: { notIn: ['NEW', 'PROCESSING'] } }),
+      })
+    )
+  })
+
+  it('filters to exactly NEW when status=NEW is requested', async () => {
+    const { req, res } = makeListReqRes({ status: 'NEW' })
+
+    await listTickets(req, res, vi.fn())
+
+    expect(mockedFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ status: 'NEW' }) })
+    )
+  })
+
+  it('filters to exactly PROCESSING when status=PROCESSING is requested', async () => {
+    const { req, res } = makeListReqRes({ status: 'PROCESSING' })
+
+    await listTickets(req, res, vi.fn())
+
+    expect(mockedFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ status: 'PROCESSING' }) })
+    )
+  })
 })
 
 describe('polishReply - validation', () => {

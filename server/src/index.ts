@@ -1,6 +1,7 @@
 import app from './app'
 import boss from './lib/queue'
 import { registerClassifyTicketWorker } from './queues/classifyTicket'
+import { registerAutoResolveTicketWorker } from './queues/autoResolveTicket'
 
 // Fail fast if required secrets are absent — a missing secret would allow
 // Better Auth to fall back to a weak or empty signing key.
@@ -16,6 +17,7 @@ const PORT = process.env.PORT ?? 3000
 
 await boss.start()
 await registerClassifyTicketWorker()
+await registerAutoResolveTicketWorker()
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

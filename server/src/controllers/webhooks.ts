@@ -2,6 +2,7 @@ import { RequestHandler } from 'express'
 import { z } from 'zod'
 import prisma from '../lib/db'
 import { queueTicketClassification } from '../queues/classifyTicket'
+import { queueTicketAutoResolve } from '../queues/autoResolveTicket'
 
 const inboundEmailSchema = z.object({
   from: z.string().email('Invalid sender email'),
@@ -30,5 +31,10 @@ export const handleInboundEmail: RequestHandler = async (req, res) => {
     await queueTicketClassification({ ticketId: ticket.id, subject, body })
   } catch (error) {
     console.error(`Failed to queue classification for ticket ${ticket.id}:`, error)
+  }
+  try {
+    await queueTicketAutoResolve({ ticketId: ticket.id, subject, body, from })
+  } catch (error) {
+    console.error(`Failed to queue auto-resolve for ticket ${ticket.id}:`, error)
   }
 }

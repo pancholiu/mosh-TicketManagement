@@ -26,10 +26,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type TicketStatus = "OPEN" | "RESOLVED" | "CLOSED";
+type TicketStatus = "NEW" | "PROCESSING" | "OPEN" | "RESOLVED" | "CLOSED";
 type Category = "GENERAL_QUESTION" | "TECHNICAL_QUESTION" | "REFUND_REQUEST";
 type Role = "ADMIN" | "AGENT";
-type SenderType = "AGENT" | "CUSTOMER";
+type SenderType = "AGENT" | "CUSTOMER" | "AI";
 
 type Assignee = { id: string; name: string; email: string; role?: Role };
 
@@ -120,10 +120,16 @@ function AssignTicketSelect({ ticket }: { ticket: TicketDetail }) {
 }
 
 const STATUS_LABEL: Record<TicketStatus, string> = {
+  NEW: "New",
+  PROCESSING: "Processing",
   OPEN: "Open",
   RESOLVED: "Resolved",
   CLOSED: "Closed",
 };
+
+// NEW/PROCESSING are system-managed while the AI attempts auto-resolution — agents can only
+// manually set a ticket to one of these once it has settled.
+const MANUAL_STATUSES: TicketStatus[] = ["OPEN", "RESOLVED", "CLOSED"];
 
 const CATEGORY_LABEL: Record<Category, string> = {
   GENERAL_QUESTION: "General",
@@ -161,7 +167,7 @@ function TicketStatusSelect({ ticket }: { ticket: TicketDetail }) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {(Object.keys(STATUS_LABEL) as TicketStatus[]).map((status) => (
+        {MANUAL_STATUSES.map((status) => (
           <SelectItem key={status} value={status}>
             {STATUS_LABEL[status]}
           </SelectItem>
@@ -267,6 +273,18 @@ function TicketSummary({ ticketId }: { ticketId: string }) {
   );
 }
 
+const SENDER_LABEL: Record<SenderType, string> = {
+  AGENT: "Agent",
+  AI: "AI Assistant",
+  CUSTOMER: "Customer",
+};
+
+const SENDER_BADGE_VARIANT: Record<SenderType, "default" | "secondary" | "outline"> = {
+  AGENT: "default",
+  AI: "outline",
+  CUSTOMER: "secondary",
+};
+
 function ReplyList({ replies }: { replies: Reply[] }) {
   if (replies.length === 0) {
     return <p className="text-sm text-muted-foreground">No replies yet.</p>;
@@ -278,13 +296,13 @@ function ReplyList({ replies }: { replies: Reply[] }) {
         <div key={reply.id} className="py-4 first:pt-0 space-y-1">
           <div className="flex items-baseline gap-2">
             <span className="text-sm font-medium">
-              {reply.author?.name ?? "Customer"}
+              {reply.author?.name ?? SENDER_LABEL[reply.senderType]}
             </span>
             <Badge
-              variant={reply.senderType === "AGENT" ? "default" : "secondary"}
+              variant={SENDER_BADGE_VARIANT[reply.senderType]}
               className="text-[10px]"
             >
-              {reply.senderType === "AGENT" ? "Agent" : "Customer"}
+              {SENDER_LABEL[reply.senderType]}
             </Badge>
             <span className="text-xs text-muted-foreground">
               {new Date(reply.createdAt).toLocaleString()}

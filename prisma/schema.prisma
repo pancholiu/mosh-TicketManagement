@@ -76,7 +76,7 @@ model Ticket {
   subject  String
   body     String
   from     String
-  status   TicketStatus @default(OPEN)
+  status   TicketStatus @default(NEW)
   category Category?
 
   assignedTo   User?   @relation(fields: [assignedToId], references: [id])
@@ -105,9 +105,12 @@ model Reply {
 enum SenderType {
   AGENT
   CUSTOMER
+  AI
 }
 
 enum TicketStatus {
+  NEW
+  PROCESSING
   OPEN
   RESOLVED
   CLOSED

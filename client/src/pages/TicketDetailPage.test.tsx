@@ -22,7 +22,7 @@ const BASE_TICKET = {
   replies: [] as Array<{
     id: string
     body: string
-    senderType: 'AGENT' | 'CUSTOMER'
+    senderType: 'AGENT' | 'CUSTOMER' | 'AI'
     createdAt: string
     author: { id: string; name: string; email: string } | null
   }>,
@@ -125,6 +125,27 @@ describe('TicketDetailPage - reply thread', () => {
 
     await screen.findByText('Actually, it started happening again.')
     expect(screen.getAllByText('Customer')).toHaveLength(2) // name fallback + badge
+  })
+
+  it('renders an AI-authored reply as "AI Assistant" rather than falling back to "Customer"', async () => {
+    mockTicketAndAssignees({
+      ...BASE_TICKET,
+      replies: [
+        {
+          id: 'r3',
+          body: 'Here is how to reset your password...',
+          senderType: 'AI',
+          createdAt: '2026-01-04T00:00:00.000Z',
+          author: null,
+        },
+      ],
+    })
+
+    renderPage()
+
+    await screen.findByText('Here is how to reset your password...')
+    expect(screen.getAllByText('AI Assistant')).toHaveLength(2) // name fallback + badge
+    expect(screen.queryByText('Customer')).not.toBeInTheDocument()
   })
 
   it('renders multiple replies in the given order', async () => {

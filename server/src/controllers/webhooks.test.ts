@@ -11,10 +11,16 @@ vi.mock('../queues/classifyTicket', () => ({
   queueTicketClassification: vi.fn(),
 }))
 
+vi.mock('../queues/autoResolveTicket', () => ({
+  queueTicketAutoResolve: vi.fn(),
+}))
+
 import prisma from '../lib/db'
 import { queueTicketClassification } from '../queues/classifyTicket'
+import { queueTicketAutoResolve } from '../queues/autoResolveTicket'
 const mockedCreate = vi.mocked(prisma.ticket.create)
 const mockedQueueTicketClassification = vi.mocked(queueTicketClassification)
+const mockedQueueTicketAutoResolve = vi.mocked(queueTicketAutoResolve)
 
 const VALID_HEADERS = { authorization: 'Bearer testsecret' }
 const VALID_BODY = { from: 'john@example.com', subject: 'Help needed', body: 'I need help.' }
@@ -34,6 +40,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   process.env.WEBHOOK_SECRET = 'testsecret'
   mockedQueueTicketClassification.mockResolvedValue(undefined)
+  mockedQueueTicketAutoResolve.mockResolvedValue(undefined)
 })
 
 describe('handleInboundEmail - auth', () => {
@@ -129,6 +136,33 @@ describe('handleInboundEmail - success', () => {
     const fakeTicket = { id: 'ticket-1', ...VALID_BODY, status: 'OPEN' }
     mockedCreate.mockResolvedValue(fakeTicket as any)
     mockedQueueTicketClassification.mockRejectedValue(new Error('db unavailable'))
+    const { req, res, next } = makeReqRes(VALID_HEADERS, VALID_BODY)
+
+    await handleInboundEmail(req, res, next)
+
+    expect(res.status).toHaveBeenCalledWith(201)
+    expect(res.json).toHaveBeenCalledWith(fakeTicket)
+  })
+
+  it('queues auto-resolve for the created ticket', async () => {
+    const fakeTicket = { id: 'ticket-1', ...VALID_BODY, status: 'OPEN' }
+    mockedCreate.mockResolvedValue(fakeTicket as any)
+    const { req, res, next } = makeReqRes(VALID_HEADERS, VALID_BODY)
+
+    await handleInboundEmail(req, res, next)
+
+    expect(mockedQueueTicketAutoResolve).toHaveBeenCalledWith({
+      ticketId: 'ticket-1',
+      subject: VALID_BODY.subject,
+      body: VALID_BODY.body,
+      from: VALID_BODY.from,
+    })
+  })
+
+  it('does not throw when queueing auto-resolve fails', async () => {
+    const fakeTicket = { id: 'ticket-1', ...VALID_BODY, status: 'OPEN' }
+    mockedCreate.mockResolvedValue(fakeTicket as any)
+    mockedQueueTicketAutoResolve.mockRejectedValue(new Error('db unavailable'))
     const { req, res, next } = makeReqRes(VALID_HEADERS, VALID_BODY)
 
     await handleInboundEmail(req, res, next)

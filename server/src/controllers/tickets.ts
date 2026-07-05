@@ -24,7 +24,7 @@ export const listTickets: RequestHandler = async (req, res) => {
   const { sortBy, sortOrder, status, category, search, page, pageSize } = parsed.data
 
   const where: Prisma.TicketWhereInput = {
-    status,
+    status: status ?? { notIn: [TicketStatus.NEW, TicketStatus.PROCESSING] },
     category: category === 'NONE' ? null : category,
   }
   if (search) {
@@ -208,7 +208,7 @@ const polishReplySchema = z.object({
 
 // Tickets only store the customer's email, not a display name — approximate one
 // from the local part (e.g. "jane.doe@x.com" -> "Jane Doe") for the greeting.
-function deriveCustomerName(email: string): string {
+export function deriveCustomerName(email: string): string {
   return email
     .split('@')[0]
     .split(/[._+-]+/)
