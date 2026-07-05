@@ -1,15 +1,15 @@
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import axios from 'axios'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Textarea } from '@/components/ui/textarea'
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import axios from "axios";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -17,72 +17,83 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 
-type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED'
-type Category = 'GENERAL_QUESTION' | 'TECHNICAL_QUESTION' | 'REFUND_REQUEST'
-type Role = 'ADMIN' | 'AGENT'
-type SenderType = 'AGENT' | 'CUSTOMER'
+type TicketStatus = "OPEN" | "RESOLVED" | "CLOSED";
+type Category = "GENERAL_QUESTION" | "TECHNICAL_QUESTION" | "REFUND_REQUEST";
+type Role = "ADMIN" | "AGENT";
+type SenderType = "AGENT" | "CUSTOMER";
 
-type Assignee = { id: string; name: string; email: string; role?: Role }
+type Assignee = { id: string; name: string; email: string; role?: Role };
 
 type Reply = {
-  id: string
-  body: string
-  senderType: SenderType
-  createdAt: string
-  author: { id: string; name: string; email: string } | null
-}
+  id: string;
+  body: string;
+  senderType: SenderType;
+  createdAt: string;
+  author: { id: string; name: string; email: string } | null;
+};
 
 type TicketDetail = {
-  id: string
-  subject: string
-  body: string
-  from: string
-  status: TicketStatus
-  category: Category | null
-  assignedTo: Assignee | null
-  replies: Reply[]
-  createdAt: string
-  updatedAt: string
-}
+  id: string;
+  subject: string;
+  body: string;
+  from: string;
+  status: TicketStatus;
+  category: Category | null;
+  assignedTo: Assignee | null;
+  replies: Reply[];
+  createdAt: string;
+  updatedAt: string;
+};
 
-const UNASSIGNED = 'UNASSIGNED'
+const UNASSIGNED = "UNASSIGNED";
 
 async function fetchAssignees(): Promise<Assignee[]> {
-  const res = await axios.get<Assignee[]>('/api/tickets/assignees')
-  return res.data
+  const res = await axios.get<Assignee[]>("/api/tickets/assignees");
+  return res.data;
 }
 
-async function assignTicket(id: string, assignedToId: string | null): Promise<TicketDetail> {
-  const res = await axios.patch<TicketDetail>(`/api/tickets/${id}/assign`, { assignedToId })
-  return res.data
+async function assignTicket(
+  id: string,
+  assignedToId: string | null
+): Promise<TicketDetail> {
+  const res = await axios.patch<TicketDetail>(`/api/tickets/${id}/assign`, {
+    assignedToId,
+  });
+  return res.data;
 }
 
 function AssignTicketSelect({ ticket }: { ticket: TicketDetail }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
-  const { data: assignees } = useQuery({ queryKey: ['tickets', 'assignees'], queryFn: fetchAssignees })
+  const { data: assignees } = useQuery({
+    queryKey: ["tickets", "assignees"],
+    queryFn: fetchAssignees,
+  });
 
   const mutation = useMutation({
-    mutationFn: (assignedToId: string | null) => assignTicket(ticket.id, assignedToId),
+    mutationFn: (assignedToId: string | null) =>
+      assignTicket(ticket.id, assignedToId),
     onSuccess: (updated) => {
-      queryClient.setQueryData(['tickets', ticket.id], updated)
+      queryClient.setQueryData(["tickets", ticket.id], updated);
     },
-  })
+  });
 
   return (
     <div className="space-y-1">
       <Select
         value={ticket.assignedTo?.id ?? UNASSIGNED}
-        onValueChange={(value) => mutation.mutate(value === UNASSIGNED ? null : value)}
+        onValueChange={(value) =>
+          mutation.mutate(value === UNASSIGNED ? null : value)
+        }
         disabled={mutation.isPending}
       >
         <SelectTrigger className="h-9 w-full px-1.5 text-xs">
@@ -100,45 +111,45 @@ function AssignTicketSelect({ ticket }: { ticket: TicketDetail }) {
       {mutation.isError && (
         <p className="text-xs text-destructive">
           {axios.isAxiosError(mutation.error)
-            ? (mutation.error.response?.data?.error ?? mutation.error.message)
-            : 'Failed to assign ticket'}
+            ? mutation.error.response?.data?.error ?? mutation.error.message
+            : "Failed to assign ticket"}
         </p>
       )}
     </div>
-  )
+  );
 }
 
 const STATUS_LABEL: Record<TicketStatus, string> = {
-  OPEN: 'Open',
-  RESOLVED: 'Resolved',
-  CLOSED: 'Closed',
-}
+  OPEN: "Open",
+  RESOLVED: "Resolved",
+  CLOSED: "Closed",
+};
 
 const CATEGORY_LABEL: Record<Category, string> = {
-  GENERAL_QUESTION: 'General',
-  TECHNICAL_QUESTION: 'Technical',
-  REFUND_REQUEST: 'Refund',
-}
+  GENERAL_QUESTION: "General",
+  TECHNICAL_QUESTION: "Technical",
+  REFUND_REQUEST: "Refund",
+};
 
-const NO_CATEGORY = 'NONE'
+const NO_CATEGORY = "NONE";
 
 async function updateTicket(
   id: string,
   data: { status?: TicketStatus; category?: Category | null }
 ): Promise<TicketDetail> {
-  const res = await axios.patch<TicketDetail>(`/api/tickets/${id}`, data)
-  return res.data
+  const res = await axios.patch<TicketDetail>(`/api/tickets/${id}`, data);
+  return res.data;
 }
 
 function TicketStatusSelect({ ticket }: { ticket: TicketDetail }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: (status: TicketStatus) => updateTicket(ticket.id, { status }),
     onSuccess: (updated) => {
-      queryClient.setQueryData(['tickets', ticket.id], updated)
+      queryClient.setQueryData(["tickets", ticket.id], updated);
     },
-  })
+  });
 
   return (
     <Select
@@ -157,23 +168,26 @@ function TicketStatusSelect({ ticket }: { ticket: TicketDetail }) {
         ))}
       </SelectContent>
     </Select>
-  )
+  );
 }
 
 function TicketCategorySelect({ ticket }: { ticket: TicketDetail }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (category: Category | null) => updateTicket(ticket.id, { category }),
+    mutationFn: (category: Category | null) =>
+      updateTicket(ticket.id, { category }),
     onSuccess: (updated) => {
-      queryClient.setQueryData(['tickets', ticket.id], updated)
+      queryClient.setQueryData(["tickets", ticket.id], updated);
     },
-  })
+  });
 
   return (
     <Select
       value={ticket.category ?? NO_CATEGORY}
-      onValueChange={(value) => mutation.mutate(value === NO_CATEGORY ? null : (value as Category))}
+      onValueChange={(value) =>
+        mutation.mutate(value === NO_CATEGORY ? null : (value as Category))
+      }
       disabled={mutation.isPending}
     >
       <SelectTrigger className="h-9 w-full px-1.5 text-xs">
@@ -188,27 +202,74 @@ function TicketCategorySelect({ ticket }: { ticket: TicketDetail }) {
         ))}
       </SelectContent>
     </Select>
-  )
+  );
 }
 
 async function fetchTicket(id: string): Promise<TicketDetail> {
-  const res = await axios.get<TicketDetail>(`/api/tickets/${id}`)
-  return res.data
+  const res = await axios.get<TicketDetail>(`/api/tickets/${id}`);
+  return res.data;
 }
 
 async function createReply(ticketId: string, body: string): Promise<Reply> {
-  const res = await axios.post<Reply>(`/api/tickets/${ticketId}/replies`, { body })
-  return res.data
+  const res = await axios.post<Reply>(`/api/tickets/${ticketId}/replies`, {
+    body,
+  });
+  return res.data;
 }
 
 async function polishReply(ticketId: string, body: string): Promise<string> {
-  const res = await axios.post<{ body: string }>(`/api/tickets/${ticketId}/polish-reply`, { body })
-  return res.data.body
+  const res = await axios.post<{ body: string }>(
+    `/api/tickets/${ticketId}/polish-reply`,
+    { body }
+  );
+  return res.data.body;
+}
+
+async function summarizeTicket(ticketId: string): Promise<string> {
+  const res = await axios.post<{ summary: string }>(
+    `/api/tickets/${ticketId}/summarize`
+  );
+  return res.data.summary;
+}
+
+function TicketSummary({ ticketId }: { ticketId: string }) {
+  const mutation = useMutation({
+    mutationFn: () => summarizeTicket(ticketId),
+  });
+
+  return (
+    <div className="space-y-3">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={mutation.isPending}
+        onClick={() => mutation.mutate()}
+      >
+        <Sparkles className="size-4" />
+        {mutation.isPending ? "Summarizing…" : "Summarize"}
+      </Button>
+
+      {mutation.isError && (
+        <p className="text-sm text-destructive">
+          {axios.isAxiosError(mutation.error)
+            ? mutation.error.response?.data?.error ?? mutation.error.message
+            : "Failed to summarize ticket"}
+        </p>
+      )}
+
+      {mutation.isSuccess && (
+        <div className="rounded-md border bg-muted/50 p-3">
+          <p className="text-sm leading-relaxed">{mutation.data}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ReplyList({ replies }: { replies: Reply[] }) {
   if (replies.length === 0) {
-    return <p className="text-sm text-muted-foreground">No replies yet.</p>
+    return <p className="text-sm text-muted-foreground">No replies yet.</p>;
   }
 
   return (
@@ -216,71 +277,83 @@ function ReplyList({ replies }: { replies: Reply[] }) {
       {replies.map((reply) => (
         <div key={reply.id} className="py-4 first:pt-0 space-y-1">
           <div className="flex items-baseline gap-2">
-            <span className="text-sm font-medium">{reply.author?.name ?? 'Customer'}</span>
-            <Badge variant={reply.senderType === 'AGENT' ? 'default' : 'secondary'} className="text-[10px]">
-              {reply.senderType === 'AGENT' ? 'Agent' : 'Customer'}
+            <span className="text-sm font-medium">
+              {reply.author?.name ?? "Customer"}
+            </span>
+            <Badge
+              variant={reply.senderType === "AGENT" ? "default" : "secondary"}
+              className="text-[10px]"
+            >
+              {reply.senderType === "AGENT" ? "Agent" : "Customer"}
             </Badge>
-            <span className="text-xs text-muted-foreground">{new Date(reply.createdAt).toLocaleString()}</span>
+            <span className="text-xs text-muted-foreground">
+              {new Date(reply.createdAt).toLocaleString()}
+            </span>
           </div>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">{reply.body}</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+            {reply.body}
+          </p>
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 const replySchema = z.object({
   body: z
     .string()
     .trim()
-    .min(1, 'Reply cannot be empty')
-    .max(2000, 'Reply must be 2000 characters or fewer'),
-})
+    .min(1, "Reply cannot be empty")
+    .max(2000, "Reply must be 2000 characters or fewer"),
+});
 
-type ReplyFormValues = z.infer<typeof replySchema>
+type ReplyFormValues = z.infer<typeof replySchema>;
 
 function ReplyForm({ ticketId }: { ticketId: string }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { body: '' },
-  })
+    defaultValues: { body: "" },
+  });
 
   const mutation = useMutation({
     mutationFn: (values: ReplyFormValues) => createReply(ticketId, values.body),
     onSuccess: (reply) => {
-      queryClient.setQueryData<TicketDetail>(['tickets', ticketId], (old) =>
+      queryClient.setQueryData<TicketDetail>(["tickets", ticketId], (old) =>
         old ? { ...old, replies: [...old.replies, reply] } : old
-      )
-      form.reset()
+      );
+      form.reset();
     },
     onError: (err) => {
       const message = axios.isAxiosError(err)
-        ? (err.response?.data?.error ?? err.message)
-        : 'Failed to submit reply'
-      form.setError('root', { message })
+        ? err.response?.data?.error ?? err.message
+        : "Failed to submit reply";
+      form.setError("root", { message });
     },
-  })
+  });
 
   const polishMutation = useMutation({
     mutationFn: (body: string) => polishReply(ticketId, body),
     onSuccess: (polished) => {
-      form.clearErrors('root')
-      form.setValue('body', polished, { shouldValidate: true, shouldDirty: true })
+      form.clearErrors("root");
+      form.setValue("body", polished, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
     },
     onError: (err) => {
       const message = axios.isAxiosError(err)
-        ? (err.response?.data?.error ?? err.message)
-        : 'Failed to polish reply'
-      form.setError('root', { message })
+        ? err.response?.data?.error ?? err.message
+        : "Failed to polish reply";
+      form.setError("root", { message });
     },
-  })
+  });
 
-  const draftBody = form.watch('body')
+  const draftBody = form.watch("body");
 
   function onSubmit(values: ReplyFormValues) {
-    mutation.mutate(values)
+    mutation.mutate(values);
   }
 
   return (
@@ -301,38 +374,50 @@ function ReplyForm({ ticketId }: { ticketId: string }) {
         />
 
         {form.formState.errors.root && (
-          <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
+          <p className="text-sm text-destructive">
+            {form.formState.errors.root.message}
+          </p>
         )}
 
         <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"
-            disabled={polishMutation.isPending || mutation.isPending || !draftBody.trim()}
+            disabled={
+              polishMutation.isPending ||
+              mutation.isPending ||
+              !draftBody.trim()
+            }
             onClick={() => polishMutation.mutate(draftBody)}
           >
             <Sparkles className="size-4" />
-            {polishMutation.isPending ? 'Polishing…' : 'Polish'}
+            {polishMutation.isPending ? "Polishing…" : "Polish"}
           </Button>
           <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Sending…' : 'Send reply'}
+            {mutation.isPending ? "Sending…" : "Send reply"}
           </Button>
         </div>
       </form>
     </Form>
-  )
+  );
 }
 
 export default function TicketDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id } = useParams<{ id: string }>();
 
-  const { data: ticket, isPending, error } = useQuery({
-    queryKey: ['tickets', id],
+  const {
+    data: ticket,
+    isPending,
+    error,
+  } = useQuery({
+    queryKey: ["tickets", id],
     queryFn: () => fetchTicket(id!),
     enabled: !!id,
     retry: (failureCount, error) =>
-      axios.isAxiosError(error) && error.response?.status === 404 ? false : failureCount < 3,
-  })
+      axios.isAxiosError(error) && error.response?.status === 404
+        ? false
+        : failureCount < 3,
+  });
 
   if (isPending) {
     return (
@@ -344,19 +429,20 @@ export default function TicketDetailPage() {
           <Skeleton className="h-48 w-full" />
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
-    const isNotFound = axios.isAxiosError(error) && error.response?.status === 404
+    const isNotFound =
+      axios.isAxiosError(error) && error.response?.status === 404;
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20">
         <p className="text-destructive">
           {isNotFound
-            ? 'Ticket not found'
+            ? "Ticket not found"
             : axios.isAxiosError(error)
-              ? (error.response?.data?.error ?? error.message)
-              : 'Failed to load ticket'}
+            ? error.response?.data?.error ?? error.message
+            : "Failed to load ticket"}
         </p>
         <Button variant="outline" asChild>
           <Link to="/tickets">
@@ -365,7 +451,7 @@ export default function TicketDetailPage() {
           </Link>
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -388,11 +474,15 @@ export default function TicketDetailPage() {
             </div>
             <div>
               <dt className="text-muted-foreground">Received</dt>
-              <dd className="font-medium">{new Date(ticket.createdAt).toLocaleString()}</dd>
+              <dd className="font-medium">
+                {new Date(ticket.createdAt).toLocaleString()}
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Last updated</dt>
-              <dd className="font-medium">{new Date(ticket.updatedAt).toLocaleString()}</dd>
+              <dd className="font-medium">
+                {new Date(ticket.updatedAt).toLocaleString()}
+              </dd>
             </div>
           </dl>
 
@@ -400,8 +490,11 @@ export default function TicketDetailPage() {
             <CardHeader>
               <CardTitle className="text-base">Message</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{ticket.body}</p>
+            <CardContent className="space-y-4">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                {ticket.body}
+              </p>
+              <TicketSummary ticketId={ticket.id} />
             </CardContent>
           </Card>
 
@@ -430,12 +523,14 @@ export default function TicketDetailPage() {
               <TicketCategorySelect ticket={ticket} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm text-muted-foreground">Assigned to</label>
+              <label className="text-sm text-muted-foreground">
+                Assigned to
+              </label>
               <AssignTicketSelect ticket={ticket} />
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { polishReply } from './tickets'
+import { polishReply, summarizeTicket } from './tickets'
 
 vi.mock('../lib/db', () => ({
   default: {
@@ -130,5 +130,64 @@ describe('polishReply - success', () => {
 
     const { prompt } = mockedGenerateText.mock.calls[0][0] as { prompt: string }
     expect(prompt).toContain(expectedName)
+  })
+})
+
+describe('summarizeTicket - ticket lookup', () => {
+  it('returns 404 when the ticket does not exist', async () => {
+    mockedFindUnique.mockResolvedValue(null)
+    const { req, res } = makeReqRes()
+
+    await summarizeTicket(req, res, vi.fn())
+
+    expect(res.status).toHaveBeenCalledWith(404)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Ticket not found' })
+    expect(mockedGenerateText).not.toHaveBeenCalled()
+  })
+})
+
+describe('summarizeTicket - success', () => {
+  const FAKE_TICKET_WITH_REPLIES = {
+    ...FAKE_TICKET,
+    replies: [
+      { body: 'Have you tried clearing your cache?', senderType: 'AGENT', author: { name: 'Jamie Rivera' } },
+      { body: 'Yes, still not working.', senderType: 'CUSTOMER', author: null },
+    ],
+  }
+
+  it('calls generateText with a prompt containing the ticket context and conversation history', async () => {
+    mockedFindUnique.mockResolvedValue(FAKE_TICKET_WITH_REPLIES as any)
+    mockedGenerateText.mockResolvedValue({ text: 'Summary text' } as any)
+    const { req, res } = makeReqRes()
+
+    await summarizeTicket(req, res, vi.fn())
+
+    expect(mockedGenerateText).toHaveBeenCalledTimes(1)
+    const { prompt } = mockedGenerateText.mock.calls[0][0] as { prompt: string }
+    expect(prompt).toContain(FAKE_TICKET.subject)
+    expect(prompt).toContain(FAKE_TICKET.body)
+    expect(prompt).toContain('Jamie Rivera: Have you tried clearing your cache?')
+    expect(prompt).toContain('Jane Doe: Yes, still not working.')
+  })
+
+  it('handles tickets with no replies yet', async () => {
+    mockedFindUnique.mockResolvedValue({ ...FAKE_TICKET, replies: [] } as any)
+    mockedGenerateText.mockResolvedValue({ text: 'Summary text' } as any)
+    const { req, res } = makeReqRes()
+
+    await summarizeTicket(req, res, vi.fn())
+
+    const { prompt } = mockedGenerateText.mock.calls[0][0] as { prompt: string }
+    expect(prompt).toContain('(No replies yet.)')
+  })
+
+  it('responds with the trimmed generated summary', async () => {
+    mockedFindUnique.mockResolvedValue(FAKE_TICKET_WITH_REPLIES as any)
+    mockedGenerateText.mockResolvedValue({ text: '  Summary text  \n' } as any)
+    const { req, res } = makeReqRes()
+
+    await summarizeTicket(req, res, vi.fn())
+
+    expect(res.json).toHaveBeenCalledWith({ summary: 'Summary text' })
   })
 })

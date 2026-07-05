@@ -253,3 +253,53 @@ Rewrite the draft to be clear, professional, and courteous, while preserving its
 
   res.json({ body: text.trim() })
 }
+
+export const summarizeTicket: RequestHandler<{ id: string }> = async (req, res) => {
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: req.params.id },
+    select: {
+      subject: true,
+      body: true,
+      from: true,
+      replies: {
+        select: {
+          body: true,
+          senderType: true,
+          author: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  })
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found' })
+    return
+  }
+
+  const customerName = deriveCustomerName(ticket.from)
+
+  const conversation =
+    ticket.replies.length > 0
+      ? ticket.replies
+          .map((reply) => {
+            const sender = reply.senderType === 'AGENT' ? (reply.author?.name ?? 'Agent') : customerName
+            return `${sender}: ${reply.body}`
+          })
+          .join('\n\n')
+      : '(No replies yet.)'
+
+  const { text } = await generateText({
+    model: google('gemini-2.5-flash'),
+    prompt: `You are helping a support agent quickly understand a customer support ticket and its conversation history.
+
+Ticket subject: ${ticket.subject}
+Customer's original message (from ${customerName}): ${ticket.body}
+
+Conversation history so far:
+${conversation}
+
+Write a concise summary (2-4 sentences) of the ticket and the conversation so far, covering the customer's issue, key points raised, and the current status. Respond with only the summary text — no preamble, labels, or quotes.`,
+  })
+
+  res.json({ summary: text.trim() })
+}

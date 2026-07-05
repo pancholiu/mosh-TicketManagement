@@ -301,3 +301,56 @@ describe('TicketDetailPage - polish reply', () => {
     expect(await screen.findByText('Failed to polish reply')).toBeInTheDocument()
   })
 })
+
+describe('TicketDetailPage - summarize ticket', () => {
+  it('sends a request to the summarize endpoint and shows the result', async () => {
+    mockTicketAndAssignees(BASE_TICKET)
+    mockedAxios.post.mockResolvedValue({ data: { summary: 'Customer cannot log in due to invalid credentials.' } })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Cannot log in')
+
+    await user.click(screen.getByRole('button', { name: /Summarize/ }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(`/api/tickets/${TICKET_ID}/summarize`)
+    })
+    expect(await screen.findByText('Customer cannot log in due to invalid credentials.')).toBeInTheDocument()
+  })
+
+  it('re-generates the summary on each click', async () => {
+    mockTicketAndAssignees(BASE_TICKET)
+    mockedAxios.post
+      .mockResolvedValueOnce({ data: { summary: 'First summary.' } })
+      .mockResolvedValueOnce({ data: { summary: 'Second summary.' } })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Cannot log in')
+
+    await user.click(screen.getByRole('button', { name: /Summarize/ }))
+    expect(await screen.findByText('First summary.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Summarize/ }))
+
+    expect(await screen.findByText('Second summary.')).toBeInTheDocument()
+    expect(screen.queryByText('First summary.')).not.toBeInTheDocument()
+    expect(mockedAxios.post).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows the server error message when summarizing fails', async () => {
+    mockTicketAndAssignees(BASE_TICKET)
+    const err = Object.assign(new Error('Request failed'), {
+      isAxiosError: true,
+      response: { data: { error: 'Failed to summarize ticket' } },
+    })
+    mockedAxios.post.mockRejectedValue(err)
+    mockedAxios.isAxiosError.mockReturnValue(true)
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Cannot log in')
+
+    await user.click(screen.getByRole('button', { name: /Summarize/ }))
+
+    expect(await screen.findByText('Failed to summarize ticket')).toBeInTheDocument()
+  })
+})
