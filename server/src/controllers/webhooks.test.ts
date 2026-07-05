@@ -3,12 +3,25 @@ import { handleInboundEmail } from './webhooks'
 
 vi.mock('../lib/db', () => ({
   default: {
-    ticket: { create: vi.fn() },
+    ticket: { create: vi.fn(), update: vi.fn() },
   },
 }))
 
+vi.mock('ai', () => ({
+  generateText: vi.fn(),
+  Output: { choice: vi.fn((options) => options) },
+}))
+
+vi.mock('@ai-sdk/google', () => ({
+  google: vi.fn((modelName: string) => modelName),
+}))
+
 import prisma from '../lib/db'
+import { generateText } from 'ai'
+import { Category } from '@prisma/client'
 const mockedCreate = vi.mocked(prisma.ticket.create)
+const mockedUpdate = vi.mocked(prisma.ticket.update)
+const mockedGenerateText = vi.mocked(generateText)
 
 const VALID_HEADERS = { authorization: 'Bearer testsecret' }
 const VALID_BODY = { from: 'john@example.com', subject: 'Help needed', body: 'I need help.' }
@@ -24,9 +37,16 @@ function makeReqRes(headers: Record<string, string> = {}, body: object = {}) {
   return { req, res, next }
 }
 
+// Classification runs fire-and-forget after the response is sent; flush
+// microtasks so its promise settles before assertions run.
+function flushMicrotasks() {
+  return new Promise((resolve) => setImmediate(resolve))
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
   process.env.WEBHOOK_SECRET = 'testsecret'
+  mockedGenerateText.mockResolvedValue({ output: Category.GENERAL_QUESTION } as any)
 })
 
 describe('handleInboundEmail - auth', () => {
@@ -102,5 +122,70 @@ describe('handleInboundEmail - success', () => {
 
     expect(res.status).toHaveBeenCalledWith(201)
     expect(res.json).toHaveBeenCalledWith(fakeTicket)
+  })
+
+  it('responds before classification finishes (non-blocking)', async () => {
+    const fakeTicket = { id: 'ticket-1', ...VALID_BODY, status: 'OPEN' }
+    mockedCreate.mockResolvedValue(fakeTicket as any)
+    let resolveGenerateText!: (value: unknown) => void
+    mockedGenerateText.mockReturnValue(
+      new Promise((resolve) => {
+        resolveGenerateText = resolve
+      }) as any
+    )
+    const { req, res, next } = makeReqRes(VALID_HEADERS, VALID_BODY)
+
+    await handleInboundEmail(req, res, next)
+
+    expect(res.status).toHaveBeenCalledWith(201)
+    expect(mockedUpdate).not.toHaveBeenCalled()
+
+    resolveGenerateText({ output: Category.GENERAL_QUESTION })
+    await flushMicrotasks()
+  })
+})
+
+describe('handleInboundEmail - classification', () => {
+  it('classifies the ticket using the subject and body', async () => {
+    const fakeTicket = { id: 'ticket-1', ...VALID_BODY, status: 'OPEN' }
+    mockedCreate.mockResolvedValue(fakeTicket as any)
+    mockedGenerateText.mockResolvedValue({ output: Category.TECHNICAL_QUESTION } as any)
+    const { req, res, next } = makeReqRes(VALID_HEADERS, VALID_BODY)
+
+    await handleInboundEmail(req, res, next)
+    await flushMicrotasks()
+
+    expect(mockedGenerateText).toHaveBeenCalledTimes(1)
+    const { prompt } = mockedGenerateText.mock.calls[0][0] as { prompt: string }
+    expect(prompt).toContain(VALID_BODY.subject)
+    expect(prompt).toContain(VALID_BODY.body)
+  })
+
+  it('updates the ticket with the classified category', async () => {
+    const fakeTicket = { id: 'ticket-1', ...VALID_BODY, status: 'OPEN' }
+    mockedCreate.mockResolvedValue(fakeTicket as any)
+    mockedGenerateText.mockResolvedValue({ output: Category.REFUND_REQUEST } as any)
+    const { req, res, next } = makeReqRes(VALID_HEADERS, VALID_BODY)
+
+    await handleInboundEmail(req, res, next)
+    await flushMicrotasks()
+
+    expect(mockedUpdate).toHaveBeenCalledWith({
+      where: { id: 'ticket-1' },
+      data: { category: Category.REFUND_REQUEST },
+    })
+  })
+
+  it('does not throw when classification fails', async () => {
+    const fakeTicket = { id: 'ticket-1', ...VALID_BODY, status: 'OPEN' }
+    mockedCreate.mockResolvedValue(fakeTicket as any)
+    mockedGenerateText.mockRejectedValue(new Error('model unavailable'))
+    const { req, res, next } = makeReqRes(VALID_HEADERS, VALID_BODY)
+
+    await handleInboundEmail(req, res, next)
+    await flushMicrotasks()
+
+    expect(res.status).toHaveBeenCalledWith(201)
+    expect(mockedUpdate).not.toHaveBeenCalled()
   })
 })
