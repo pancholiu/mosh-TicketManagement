@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express'
 import { z } from 'zod'
+import * as Sentry from '@sentry/node'
 import prisma from '../lib/db'
 import { queueTicketClassification } from '../queues/classifyTicket'
 import { queueTicketAutoResolve } from '../queues/autoResolveTicket'
@@ -31,10 +32,12 @@ export const handleInboundEmail: RequestHandler = async (req, res) => {
     await queueTicketClassification({ ticketId: ticket.id, subject, body })
   } catch (error) {
     console.error(`Failed to queue classification for ticket ${ticket.id}:`, error)
+    Sentry.captureException(error)
   }
   try {
     await queueTicketAutoResolve({ ticketId: ticket.id, subject, body, from })
   } catch (error) {
     console.error(`Failed to queue auto-resolve for ticket ${ticket.id}:`, error)
+    Sentry.captureException(error)
   }
 }

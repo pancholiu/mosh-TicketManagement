@@ -7,6 +7,7 @@ const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://localhost:3000'
 const serverPort = process.env.VITE_PORT ? parseInt(process.env.VITE_PORT) : undefined
 
 export default defineConfig({
+  envDir: '../',
   test: {
     environment: 'jsdom',
     globals: true,

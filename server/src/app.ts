@@ -1,4 +1,5 @@
 import express, { NextFunction, Request, Response } from 'express'
+import * as Sentry from '@sentry/node'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 import { toNodeHandler } from 'better-auth/node'
@@ -39,6 +40,8 @@ app.use('/users', requireAuth, requireRole('ADMIN'), usersRouter)
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' })
 })
+
+Sentry.setupExpressErrorHandler(app)
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

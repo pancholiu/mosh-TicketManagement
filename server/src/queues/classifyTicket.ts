@@ -1,6 +1,7 @@
 import { google } from '@ai-sdk/google'
 import { generateText, Output } from 'ai'
 import { Category } from '@prisma/client'
+import * as Sentry from '@sentry/node'
 import prisma from '../lib/db'
 import boss from '../lib/queue'
 
@@ -21,16 +22,21 @@ export async function queueTicketClassification(data: ClassifyTicketJobData) {
 async function classifyTicketHandler([job]: Array<{ data: ClassifyTicketJobData }>) {
   const { ticketId, subject, body } = job.data
 
-  const { output } = await generateText({
-    model: google('gemini-2.5-flash'),
-    output: Output.choice({ options: Object.values(Category) }),
-    prompt: `Classify the following support ticket into exactly one category.
+  try {
+    const { output } = await generateText({
+      model: google('gemini-2.5-flash'),
+      output: Output.choice({ options: Object.values(Category) }),
+      prompt: `Classify the following support ticket into exactly one category.
 
 Subject: ${subject}
 Body: ${body}`,
-  })
+    })
 
-  await prisma.ticket.update({ where: { id: ticketId }, data: { category: output } })
+    await prisma.ticket.update({ where: { id: ticketId }, data: { category: output } })
+  } catch (error) {
+    Sentry.captureException(error)
+    throw error
+  }
 }
 
 export async function registerClassifyTicketWorker() {

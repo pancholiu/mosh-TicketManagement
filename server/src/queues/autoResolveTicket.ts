@@ -5,6 +5,7 @@ import { google } from '@ai-sdk/google'
 import { generateText, Output } from 'ai'
 import { z } from 'zod'
 import { SenderType, TicketStatus } from '@prisma/client'
+import * as Sentry from '@sentry/node'
 import prisma from '../lib/db'
 import boss from '../lib/queue'
 import { deriveCustomerName } from '../controllers/tickets'
@@ -76,6 +77,7 @@ Respond with:
       await prisma.ticket.update({ where: { id: ticketId }, data: { status: TicketStatus.OPEN } })
     }
   } catch (error) {
+    Sentry.captureException(error)
     await prisma.ticket.update({ where: { id: ticketId }, data: { status: TicketStatus.OPEN } })
     throw error
   }

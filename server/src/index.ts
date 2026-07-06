@@ -1,3 +1,4 @@
+import './instrument'
 import app from './app'
 import boss from './lib/queue'
 import { registerClassifyTicketWorker } from './queues/classifyTicket'
