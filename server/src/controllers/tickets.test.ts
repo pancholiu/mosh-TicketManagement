@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { listTickets, polishReply, summarizeTicket } from './tickets'
+import { getTicketStats, listTickets, polishReply, summarizeTicket } from './tickets'
 
 vi.mock('../lib/db', () => ({
   default: {
     ticket: { findUnique: vi.fn(), findMany: vi.fn(), count: vi.fn() },
+    $queryRaw: vi.fn(),
   },
 }))
 
@@ -21,6 +22,7 @@ import { generateText } from 'ai'
 const mockedFindUnique = vi.mocked(prisma.ticket.findUnique)
 const mockedFindMany = vi.mocked(prisma.ticket.findMany)
 const mockedCount = vi.mocked(prisma.ticket.count)
+const mockedQueryRaw = vi.mocked(prisma.$queryRaw)
 const mockedGenerateText = vi.mocked(generateText)
 
 const TICKET_ID = 't1'
@@ -90,6 +92,26 @@ describe('listTickets', () => {
     expect(mockedFindMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ status: 'PROCESSING' }) })
     )
+  })
+})
+
+describe('getTicketStats', () => {
+  it('returns the stats object produced by the get_ticket_stats() DB function', async () => {
+    const stats = {
+      totalTickets: 10,
+      openTickets: 4,
+      resolvedByAiCount: 1,
+      resolvedByAiPercent: 10,
+      avgResolutionTimeMs: 3 * 60 * 60 * 1000,
+      ticketsByDay: [{ date: '2026-07-06', count: 2 }],
+    }
+    mockedQueryRaw.mockResolvedValueOnce([{ stats }])
+    const { req, res } = makeListReqRes()
+
+    await getTicketStats(req, res, vi.fn())
+
+    expect(mockedQueryRaw).toHaveBeenCalledTimes(1)
+    expect(res.json).toHaveBeenCalledWith(stats)
   })
 })
 

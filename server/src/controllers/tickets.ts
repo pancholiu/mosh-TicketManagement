@@ -55,6 +55,20 @@ export const listTickets: RequestHandler = async (req, res) => {
   res.json({ data: tickets, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) })
 }
 
+type TicketStats = {
+  totalTickets: number
+  openTickets: number
+  resolvedByAiCount: number
+  resolvedByAiPercent: number
+  avgResolutionTimeMs: number | null
+  ticketsByDay: { date: string; count: number }[]
+}
+
+export const getTicketStats: RequestHandler = async (_req, res) => {
+  const [{ stats }] = await prisma.$queryRaw<{ stats: TicketStats }[]>`SELECT get_ticket_stats() as stats`
+  res.json(stats)
+}
+
 export const getTicket: RequestHandler<{ id: string }> = async (req, res) => {
   const ticket = await prisma.ticket.findUnique({
     where: { id: req.params.id },

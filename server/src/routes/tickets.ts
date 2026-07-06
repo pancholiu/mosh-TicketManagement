@@ -3,6 +3,7 @@ import {
   assignTicket,
   createReply,
   getTicket,
+  getTicketStats,
   listAssignees,
   listTickets,
   polishReply,
@@ -14,6 +15,7 @@ const router = Router()
 
 router.get('/', listTickets)
 router.get('/assignees', listAssignees)
+router.get('/stats', getTicketStats)
 router.get('/:id', getTicket)
 router.patch('/:id', updateTicket)
 router.patch('/:id/assign', assignTicket)
