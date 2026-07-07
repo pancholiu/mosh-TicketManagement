@@ -7,6 +7,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StatusIndicator } from "@/components/StatusIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -247,7 +248,7 @@ function TicketSummary({ ticketId }: { ticketId: string }) {
     <div className="space-y-3">
       <Button
         type="button"
-        variant="outline"
+        variant="signal"
         size="sm"
         disabled={mutation.isPending}
         onClick={() => mutation.mutate()}
@@ -265,7 +266,7 @@ function TicketSummary({ ticketId }: { ticketId: string }) {
       )}
 
       {mutation.isSuccess && (
-        <div className="rounded-md border bg-muted/50 p-3">
+        <div className="rounded-md border border-signal/20 bg-signal/5 p-3">
           <p className="text-sm leading-relaxed">{mutation.data}</p>
         </div>
       )}
@@ -279,9 +280,9 @@ const SENDER_LABEL: Record<SenderType, string> = {
   CUSTOMER: "Customer",
 };
 
-const SENDER_BADGE_VARIANT: Record<SenderType, "default" | "secondary" | "outline"> = {
+const SENDER_BADGE_VARIANT: Record<SenderType, "default" | "secondary" | "signal"> = {
   AGENT: "default",
-  AI: "outline",
+  AI: "signal",
   CUSTOMER: "secondary",
 };
 
@@ -304,7 +305,7 @@ function ReplyList({ replies }: { replies: Reply[] }) {
             >
               {SENDER_LABEL[reply.senderType]}
             </Badge>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground font-mono">
               {new Date(reply.createdAt).toLocaleString()}
             </span>
           </div>
@@ -400,7 +401,7 @@ function ReplyForm({ ticketId }: { ticketId: string }) {
         <div className="flex gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="signal"
             disabled={
               polishMutation.isPending ||
               mutation.isPending ||
@@ -481,7 +482,10 @@ export default function TicketDetailPage() {
         </Link>
       </Button>
 
-      <h1 className="text-3xl font-bold">{ticket.subject}</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{ticket.subject}</h1>
+        <StatusIndicator status={ticket.status} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_140px] gap-8 items-start">
         <div className="min-w-0 space-y-6">
@@ -492,13 +496,13 @@ export default function TicketDetailPage() {
             </div>
             <div>
               <dt className="text-muted-foreground">Received</dt>
-              <dd className="font-medium">
+              <dd className="font-medium font-mono text-xs">
                 {new Date(ticket.createdAt).toLocaleString()}
               </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Last updated</dt>
-              <dd className="font-medium">
+              <dd className="font-medium font-mono text-xs">
                 {new Date(ticket.updatedAt).toLocaleString()}
               </dd>
             </div>
@@ -506,7 +510,7 @@ export default function TicketDetailPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Message</CardTitle>
+              <CardTitle className="font-display text-base font-semibold">Message</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -518,7 +522,7 @@ export default function TicketDetailPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Replies</CardTitle>
+              <CardTitle className="font-display text-base font-semibold">Replies</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <ReplyList replies={ticket.replies} />
@@ -529,7 +533,7 @@ export default function TicketDetailPage() {
 
         <Card>
           <CardHeader className="p-3">
-            <CardTitle className="text-base">Details</CardTitle>
+            <CardTitle className="font-display text-base font-semibold">Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-3 pt-0">
             <div className="space-y-1.5">

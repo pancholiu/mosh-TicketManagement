@@ -77,8 +77,8 @@ export default function UsersPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-3xl font-bold">Users</h1>
-          <span className="text-muted-foreground text-sm">{users.length} total</span>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Users</h1>
+          <span className="text-muted-foreground font-mono text-xs">{users.length} total</span>
         </div>
         <CreateUserDialog />
       </div>
@@ -104,7 +104,7 @@ export default function UsersPage() {
                     {user.role}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-muted-foreground font-mono text-xs">
                   {new Date(user.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">

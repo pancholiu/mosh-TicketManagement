@@ -1,7 +1,9 @@
 import axios from 'axios'
 import { useQuery } from '@tanstack/react-query'
+import { Sparkles } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { TicketsByDayChart } from '@/components/TicketsByDayChart'
 
 type TicketStats = {
@@ -35,11 +37,22 @@ const STAT_TILES: {
   key: keyof TicketStats
   label: string
   format: (stats: TicketStats) => string
+  signal?: boolean
 }[] = [
   { key: 'totalTickets', label: 'Total Tickets', format: (s) => s.totalTickets.toString() },
   { key: 'openTickets', label: 'Open Tickets', format: (s) => s.openTickets.toString() },
-  { key: 'resolvedByAiCount', label: 'Resolved by AI', format: (s) => s.resolvedByAiCount.toString() },
-  { key: 'resolvedByAiPercent', label: '% Resolved by AI', format: (s) => `${s.resolvedByAiPercent.toFixed(1)}%` },
+  {
+    key: 'resolvedByAiCount',
+    label: 'Resolved by AI',
+    format: (s) => s.resolvedByAiCount.toString(),
+    signal: true,
+  },
+  {
+    key: 'resolvedByAiPercent',
+    label: 'AI Resolution Rate',
+    format: (s) => `${s.resolvedByAiPercent.toFixed(1)}%`,
+    signal: true,
+  },
   { key: 'avgResolutionTimeMs', label: 'Avg Resolution Time', format: (s) => formatDuration(s.avgResolutionTimeMs) },
 ]
 
@@ -52,12 +65,14 @@ export default function DashboardPage() {
   if (isPending) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">Dashboard</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {STAT_TILES.map((tile) => (
-            <Card key={tile.key}>
+            <Card key={tile.key} className={cn(tile.signal && 'border-signal/25')}>
               <CardHeader>
-                <CardDescription>{tile.label}</CardDescription>
+                <CardDescription className="font-mono text-[11px] uppercase tracking-wider">
+                  {tile.label}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Skeleton className="h-9 w-20" />
@@ -67,7 +82,7 @@ export default function DashboardPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Tickets per day (last 30 days)</CardTitle>
+            <CardTitle className="font-display text-base font-semibold">Tickets per day (last 30 days)</CardTitle>
           </CardHeader>
           <CardContent>
             <Skeleton className="h-[280px] w-full" />
@@ -89,22 +104,37 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight">Dashboard</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {STAT_TILES.map((tile) => (
-          <Card key={tile.key}>
+          <Card key={tile.key} className={cn(tile.signal && 'border-signal/25 bg-signal/[0.03]')}>
             <CardHeader>
-              <CardDescription>{tile.label}</CardDescription>
+              <CardDescription
+                className={cn(
+                  'flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider',
+                  tile.signal && 'text-signal/80'
+                )}
+              >
+                {tile.signal && <Sparkles className="size-3" />}
+                {tile.label}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{tile.format(stats)}</p>
+              <p
+                className={cn(
+                  'font-display text-3xl font-semibold tabular-nums',
+                  tile.signal && 'text-signal'
+                )}
+              >
+                {tile.format(stats)}
+              </p>
             </CardContent>
           </Card>
         ))}
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Tickets per day (last 30 days)</CardTitle>
+          <CardTitle className="font-display text-base font-semibold">Tickets per day (last 30 days)</CardTitle>
         </CardHeader>
         <CardContent>
           <TicketsByDayChart data={stats.ticketsByDay} />

@@ -51,64 +51,72 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted flex items-center justify-center">
-      <Card className="w-full max-w-sm shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-2xl">Sign in</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        autoComplete="email"
-                        inputMode="email"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex items-center gap-2 justify-center">
+          <span className="size-2 rounded-[2px] bg-foreground" aria-hidden />
+          <span className="font-display font-semibold tracking-tight text-sm text-muted-foreground">
+            TicketDesk
+          </span>
+        </div>
+        <Card className="shadow-xl shadow-black/20">
+          <CardHeader>
+            <CardTitle className="font-display text-2xl font-semibold tracking-tight">Sign in</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          autoComplete="email"
+                          inputMode="email"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          autoComplete="current-password"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.formState.errors.root && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.root.message}
+                  </p>
                 )}
-              />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        autoComplete="current-password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {form.formState.errors.root && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.root.message}
-                </p>
-              )}
-
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? 'Signing in…' : 'Sign in'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                <Button type="submit" disabled={isSubmitting} className="w-full">
+                  {isSubmitting ? 'Signing in…' : 'Sign in'}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

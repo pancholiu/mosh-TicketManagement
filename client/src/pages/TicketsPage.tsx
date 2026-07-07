@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TextLink, linkVariants } from '@/components/ui/link'
+import { StatusIndicator, type TicketStatus } from '@/components/StatusIndicator'
 import { cn } from '@/lib/utils'
 import {
   Select,
@@ -31,7 +32,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-type TicketStatus = 'NEW' | 'PROCESSING' | 'OPEN' | 'RESOLVED' | 'CLOSED'
 type Category = 'GENERAL_QUESTION' | 'TECHNICAL_QUESTION' | 'REFUND_REQUEST'
 
 type Ticket = {
@@ -41,14 +41,6 @@ type Ticket = {
   status: TicketStatus
   category: Category | null
   createdAt: string
-}
-
-const STATUS_VARIANT: Record<TicketStatus, 'default' | 'secondary' | 'outline'> = {
-  NEW: 'outline',
-  PROCESSING: 'secondary',
-  OPEN: 'default',
-  RESOLVED: 'secondary',
-  CLOSED: 'outline',
 }
 
 const CATEGORY_LABEL: Record<Category, string> = {
@@ -106,9 +98,7 @@ const columns = [
   }),
   columnHelper.accessor('status', {
     header: 'Status',
-    cell: (info) => (
-      <Badge variant={STATUS_VARIANT[info.getValue()]}>{info.getValue()}</Badge>
-    ),
+    cell: (info) => <StatusIndicator status={info.getValue()} />,
   }),
   columnHelper.accessor('category', {
     header: 'Category',
@@ -124,7 +114,7 @@ const columns = [
   columnHelper.accessor('createdAt', {
     header: 'Received',
     cell: (info) => (
-      <span className="text-muted-foreground">
+      <span className="text-muted-foreground font-mono text-xs">
         {new Date(info.getValue()).toLocaleDateString()}
       </span>
     ),
@@ -193,7 +183,7 @@ export default function TicketsPage() {
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 </TableRow>
@@ -220,8 +210,8 @@ export default function TicketsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <div className="flex items-baseline gap-3">
-        <h1 className="text-3xl font-bold">Tickets</h1>
-        <span className="text-muted-foreground text-sm">{result.total} total</span>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">Tickets</h1>
+        <span className="text-muted-foreground font-mono text-xs">{result.total} total</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -318,7 +308,7 @@ export default function TicketsPage() {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground text-sm">
+        <span className="text-muted-foreground font-mono text-xs">
           Page {result.page} of {totalPages}
         </span>
         <div className="flex items-center gap-2">

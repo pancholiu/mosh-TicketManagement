@@ -18,8 +18,8 @@ function ChartTooltip({ active, payload }: TooltipProps<number, string>) {
 
   return (
     <div className="rounded-md border bg-popover px-3 py-2 shadow-md text-sm">
-      <p className="text-muted-foreground">{formatAxisDate(point.date)}</p>
-      <p className="font-semibold text-foreground">
+      <p className="text-muted-foreground font-mono text-xs">{formatAxisDate(point.date)}</p>
+      <p className="font-semibold text-foreground tabular-nums">
         {count} {count === 1 ? 'ticket' : 'tickets'}
       </p>
     </div>
