@@ -4,7 +4,8 @@
   "workspaces": ["client", "server"],
   "scripts": {
     "dev": "bun run --filter '*' dev",
-    "build": "bun run --filter '*' build",
+    "build": "bunx prisma generate && bun run --filter client build",
+    "start": "bunx prisma migrate deploy && bun server/src/index.ts",
     "seed": "bun --env-file .env prisma/seed.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"

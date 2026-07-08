@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { fileURLToPath, URL } from 'url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -22,14 +23,9 @@ export default defineConfig({
   server: {
     port: serverPort,
     proxy: {
-      '/api/auth': {
-        target: proxyTarget,
-        changeOrigin: true,
-      },
       '/api': {
         target: proxyTarget,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },
