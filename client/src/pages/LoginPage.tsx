@@ -51,15 +51,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(60% 50% at 50% 20%, color-mix(in srgb, #f97316 18%, transparent), transparent)',
+        }}
+        aria-hidden
+      />
+      <div className="relative w-full max-w-sm space-y-6">
         <div className="flex items-center gap-2 justify-center">
-          <span className="size-2 rounded-[2px] bg-foreground" aria-hidden />
+          <span className="size-2 rounded-[2px] bg-orange-500" aria-hidden />
           <span className="font-display font-semibold tracking-tight text-sm text-muted-foreground">
             TicketDesk
           </span>
         </div>
-        <Card className="shadow-xl shadow-black/20">
+        <Card className="border-orange-500/20 shadow-xl shadow-orange-950/40">
           <CardHeader>
             <CardTitle className="font-display text-2xl font-semibold tracking-tight">Sign in</CardTitle>
           </CardHeader>
@@ -77,6 +85,7 @@ export default function LoginPage() {
                           type="text"
                           autoComplete="email"
                           inputMode="email"
+                          className="border-orange-500/20 focus-visible:border-orange-500 focus-visible:ring-orange-500"
                           {...field}
                         />
                       </FormControl>
@@ -95,6 +104,7 @@ export default function LoginPage() {
                         <Input
                           type="password"
                           autoComplete="current-password"
+                          className="border-orange-500/20 focus-visible:border-orange-500 focus-visible:ring-orange-500"
                           {...field}
                         />
                       </FormControl>
@@ -109,7 +119,11 @@ export default function LoginPage() {
                   </p>
                 )}
 
-                <Button type="submit" disabled={isSubmitting} className="w-full">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-orange-500 text-white hover:bg-orange-600 focus-visible:ring-orange-500"
+                >
                   {isSubmitting ? 'Signing in…' : 'Sign in'}
                 </Button>
               </form>
